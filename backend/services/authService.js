@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 export const registerUser = async (userData) => {
@@ -20,7 +21,17 @@ export const registerUser = async (userData) => {
 };
 
 export const authenticateUser = async (email, password) => {
-  throw new Error("authenticateUser not implemented.");
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new Error("Invalid email or password");
+  }
+
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    throw new Error("Invalid email or password");
+  }
+
+  return user;
 };
 
 export const verifyGoogleToken = async (googleToken) => {
@@ -28,5 +39,10 @@ export const verifyGoogleToken = async (googleToken) => {
 };
 
 export const generateToken = (user) => {
-  throw new Error("generateToken not implemented.");
+  const secret = process.env.JWT_SECRET || "default_secret_key";
+  return jwt.sign(
+    { id: user._id, email: user.email, role: user.role },
+    secret,
+    { expiresIn: "1d" }
+  );
 };

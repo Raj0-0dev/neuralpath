@@ -1,4 +1,4 @@
-import { registerUser } from "../services/authService.js";
+import { registerUser, authenticateUser, generateToken } from "../services/authService.js";
 
 export const register = async (req, res, next) => {
   try {
@@ -36,11 +36,36 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    res.status(501).json({
-      success: false,
-      message: "Login not implemented yet.",
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    const user = await authenticateUser(email, password);
+    const token = generateToken(user);
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      },
     });
   } catch (error) {
+    if (error.message === "Invalid email or password") {
+      return res.status(401).json({
+        success: false,
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
