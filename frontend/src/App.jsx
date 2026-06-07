@@ -1,122 +1,96 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React from "react";
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { ThemeProvider } from "./context/ThemeContext";
+import { AppProvider, useApp } from "./context/AppContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
-function App() {
-  const [count, setCount] = useState(0)
+// Common Components
+import VisitorHeader from "./components/layout/VisitorHeader";
+
+// Page Views
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import { UploadPage, PathwayPage, DashboardPage, AdminPage } from "../../StubPages";
+
+function AppContent() {
+  const location = useLocation();
+  const { isLoggedIn } = useApp();
+
+  // Authenticated workspace routes
+  const authRoutes = ["/dashboard", "/upload", "/pathway", "/admin"];
+  const isAuthRoute = isLoggedIn && authRoutes.includes(location.pathname);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+    <div className={`min-h-screen bg-[#FAF9F6] text-stone-800 font-sans selection:bg-amber-100 selection:text-amber-900 flex flex-col ${location.pathname === "/login" ? "h-screen overflow-hidden" : ""}`}>
+      {!isAuthRoute && <VisitorHeader />}
+
+      <main className={`flex-1 flex flex-col ${!isAuthRoute ? "pt-24" : ""}`}>
+        <Routes>
+          {/* Public Views */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Candidate Protected Views */}
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute allowedRole="employee">
+                <UploadPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pathway"
+            element={
+              <ProtectedRoute allowedRole="employee">
+                <PathwayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRole="employee">
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Gated Views */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Wildcard Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+
+      {/* Persistent elegant footer on public routes */}
+      {!isAuthRoute && location.pathname !== "/login" && (
+        <footer className="py-12 border-t border-stone-200 bg-white text-center mt-auto">
+          <p className="font-mono text-[10px] text-stone-400 font-semibold max-w-xl mx-auto px-4">
+            &copy; {new Date().getFullYear()} NeuralPath. All rights reserved. Strategic Talent Alignments Gating & Topological Competencies Pipeline.
           </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        </footer>
+      )}
+    </div>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AppProvider>
+    </ThemeProvider>
+  );
+}
