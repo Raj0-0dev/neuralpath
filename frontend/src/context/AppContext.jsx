@@ -50,18 +50,48 @@ export function AppProvider({ children }) {
     const [activityLog, setActivityLog] = useState([]);
     const [dailyHours, setDailyHours] = useState({});
 
-    // Hydrate user and progress on mount
+    // Hydrate user and session on mount
     useEffect(() => {
-        const hydrate = () => {
+        const hydrate = async () => {
+            const token = localStorage.getItem("np-mock-user-token");
+            if (!token) {
+                setAuthLoading(false);
+                return;
+            }
+
             try {
-                const storedUser = localStorage.getItem("np-mock-user");
-                if (storedUser) {
-                    const parsed = JSON.parse(storedUser);
-                    setUser(parsed);
-                    setProfile(parsed);
+                const res = await fetch("http://localhost:3000/api/auth/me", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                    },
+                });
+
+                const result = await res.json();
+
+                if (res.ok && result.success) {
+                    const fetchedUser = {
+                        uid: result.data._id,
+                        email: result.data.email,
+                        name: result.data.name,
+                        role: result.data.role,
+                        targetRole: result.data.targetRole || "",
+                        company: result.data.company || "",
+                    };
+                    setUser(fetchedUser);
+                    setProfile(fetchedUser);
+                } else {
+                    localStorage.removeItem("np-mock-user-token");
+                    localStorage.removeItem("np-mock-user");
+                    setUser(null);
+                    setProfile(null);
                 }
             } catch (err) {
-                console.error("Hydration expired:", err);
+                console.error("Hydration expired/error:", err);
+                const storedUser = localStorage.getItem("np-mock-user");
+                if (storedUser) {
+                    setUser(JSON.parse(storedUser));
+                }
             } finally {
                 setAuthLoading(false);
             }
@@ -70,82 +100,92 @@ export function AppProvider({ children }) {
     }, []);
 
     const refreshProgress = async () => {
-        // Client-side stub
         return Promise.resolve();
     };
 
     const loginUser = async (email, password) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if (!email || !password) {
-                    reject(new Error("Email and password are required."));
-                    return;
-                }
+        if (!email || !password) {
+            throw new Error("Email and password are required.");
+        }
 
-                // Mock success login
-                const role = email.includes("admin") ? "admin" : "employee";
-                const mockUser = {
-                    uid: "mock-uid-" + Date.now(),
-                    email: email,
-                    name: email.split("@")[0].toUpperCase(),
-                    role: role
-                };
-
-                localStorage.setItem("np-mock-user", JSON.stringify(mockUser));
-                setUser(mockUser);
-                setProfile(mockUser);
-                resolve({ user: mockUser, token: "mock-token-xyz" });
-            }, 800);
+        const res = await fetch("http://localhost:3000/api/auth/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
         });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Failed to log in.");
+        }
+
+        const loggedUser = {
+            uid: data.user.id,
+            email: data.user.email,
+            name: data.user.name,
+            role: data.user.role,
+        };
+
+        localStorage.setItem("np-mock-user-token", data.token);
+        localStorage.setItem("np-mock-user", JSON.stringify(loggedUser));
+        setUser(loggedUser);
+        setProfile(loggedUser);
+
+        return { user: loggedUser, token: data.token };
     };
 
     const signupUser = async (email, password, extra = {}) => {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if (!email || !password || !extra.name) {
-                    reject(new Error("Missing required registration fields."));
-                    return;
-                }
+        if (!email || !password || !extra.name) {
+            throw new Error("Missing required registration fields.");
+        }
 
-                // Mock success signup
-                const mockUser = {
-                    uid: "mock-uid-" + Date.now(),
-                    email: email,
-                    name: extra.name,
-                    role: extra.role || "employee",
-                    targetRole: extra.targetRole || "",
-                    company: extra.company || ""
-                };
-
-                localStorage.setItem("np-mock-user", JSON.stringify(mockUser));
-                setUser(mockUser);
-                setProfile(mockUser);
-                resolve({ user: mockUser, token: "mock-token-xyz" });
-            }, 800);
+        const res = await fetch("http://localhost:3000/api/auth/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                email,
+                password,
+                role: extra.role || "employee",
+                name: extra.name,
+                targetRole: extra.targetRole || "",
+                company: extra.company || "",
+            }),
         });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Registration failed.");
+        }
+
+        // Auto-login the user after registration
+        return loginUser(email, password);
     };
 
     const signinGoogle = async (extra = {}) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const mockUser = {
-                    uid: "mock-google-uid-" + Date.now(),
-                    email: "google.user@example.com",
-                    name: "Google Candidate",
-                    role: extra.role || "employee",
-                    targetRole: extra.targetRole || "",
-                    company: extra.company || ""
-                };
-
-                localStorage.setItem("np-mock-user", JSON.stringify(mockUser));
-                setUser(mockUser);
-                setProfile(mockUser);
-                resolve({ user: mockUser, token: "mock-token-xyz" });
-            }, 800);
-        });
+        throw new Error("Google Sign-In integration not implemented in the API yet.");
     };
 
     const handleLogOut = async () => {
+        const token = localStorage.getItem("np-mock-user-token");
+        if (token) {
+            try {
+                await fetch("http://localhost:3000/api/auth/logout", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                    },
+                });
+            } catch (err) {
+                console.error("Logout request error:", err);
+            }
+        }
+        localStorage.removeItem("np-mock-user-token");
         localStorage.removeItem("np-mock-user");
         setUser(null);
         setProfile(null);
