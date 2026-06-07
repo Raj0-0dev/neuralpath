@@ -1,10 +1,35 @@
+import { registerUser } from "../services/authService.js";
+
 export const register = async (req, res, next) => {
   try {
-    res.status(501).json({
-      success: false,
-      message: "Register not implemented yet.",
+    const { email, password, role, name } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    const user = await registerUser({ email, password, role, name });
+
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      data: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      },
     });
   } catch (error) {
+    if (error.message === "User already exists") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
