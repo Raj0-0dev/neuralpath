@@ -10,7 +10,7 @@ import VisitorHeader from "./components/layout/VisitorHeader";
 // Page Views
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
-import { UploadPage, PathwayPage, DashboardPage, AdminPage } from "../../StubPages";
+import { UploadPage, PathwayPage, DashboardPage, AdminPage } from "./StubPages";
 
 function AppContent() {
   const location = useLocation();
