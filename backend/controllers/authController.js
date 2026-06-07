@@ -94,9 +94,9 @@ export const logout = async (req, res, next) => {
 
 export const getMe = async (req, res, next) => {
   try {
-    res.status(501).json({
-      success: false,
-      message: "Get me not implemented yet.",
+    res.json({
+      success: true,
+      data: req.user,
     });
   } catch (error) {
     next(error);
