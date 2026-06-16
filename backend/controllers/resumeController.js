@@ -1,4 +1,5 @@
 import Resume from "../models/Resume.js";
+import { extractTextFromPDF } from "../services/pdfService.js";
 
 export const uploadResume = async (req, res, next) => {
   try {
@@ -16,9 +17,12 @@ export const uploadResume = async (req, res, next) => {
 
     await resume.save();
 
+    // Extract text from the PDF file (not stored in DB yet)
+    const extractedText = await extractTextFromPDF(file.path);
+
     res.status(201).json({
       success: true,
-      message: "Resume uploaded and saved successfully",
+      message: "Resume uploaded, saved, and processed successfully",
       data: {
         id: resume._id,
         employeeId: resume.employeeId,
@@ -28,6 +32,7 @@ export const uploadResume = async (req, res, next) => {
         mimetype: file.mimetype,
         size: file.size,
         uploadedAt: resume.uploadedAt,
+        extractedText,
       },
     });
   } catch (error) {
