@@ -70,6 +70,30 @@ export const uploadResumeMiddleware = (req, res, next) => {
       });
     }
 
+    // Securely verify that the file starts with PDF signature bytes (%PDF)
+    try {
+      const fd = fs.openSync(req.file.path, "r");
+      const buffer = Buffer.alloc(4);
+      fs.readSync(fd, buffer, 0, 4, 0);
+      fs.closeSync(fd);
+
+      if (buffer.toString() !== "%PDF") {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({
+          success: false,
+          message: "Validation error: The uploaded file is not a valid PDF document.",
+        });
+      }
+    } catch (fsErr) {
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(500).json({
+        success: false,
+        message: "Server error occurred during file security validation.",
+      });
+    }
+
     next();
   });
 };
