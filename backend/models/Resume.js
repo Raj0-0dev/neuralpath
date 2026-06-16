@@ -15,6 +15,10 @@ const resumeSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    extractedText: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

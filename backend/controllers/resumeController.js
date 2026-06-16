@@ -9,16 +9,17 @@ export const uploadResume = async (req, res, next) => {
     // Normalize backslashes to forward slashes for the file path
     const fileUrl = file.path.replace(/\\/g, "/");
 
-    // Store resume metadata in the database
+    // Extract text from the PDF file
+    const extractedText = await extractTextFromPDF(file.path);
+
+    // Store resume metadata and extracted text in the database
     const resume = new Resume({
       employeeId,
       fileUrl,
+      extractedText,
     });
 
     await resume.save();
-
-    // Extract text from the PDF file (not stored in DB yet)
-    const extractedText = await extractTextFromPDF(file.path);
 
     res.status(201).json({
       success: true,
@@ -32,7 +33,7 @@ export const uploadResume = async (req, res, next) => {
         mimetype: file.mimetype,
         size: file.size,
         uploadedAt: resume.uploadedAt,
-        extractedText,
+        extractedText: resume.extractedText,
       },
     });
   } catch (error) {
