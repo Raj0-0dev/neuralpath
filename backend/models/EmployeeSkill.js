@@ -1,0 +1,23 @@
+import mongoose from "mongoose";
+
+const employeeSkillSchema = new mongoose.Schema(
+  {
+    employeeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
+    skills: {
+      type: [String],
+      default: [],
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const EmployeeSkill = mongoose.model("EmployeeSkill", employeeSkillSchema);
+
+export default EmployeeSkill;
