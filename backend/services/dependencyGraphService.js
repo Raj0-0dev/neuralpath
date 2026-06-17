@@ -68,4 +68,46 @@ export const resolvePrerequisites = async (missingSkills) => {
   return resolved;
 };
 
+/**
+ * Constructs a directed graph representation (adjacency list & in-degrees) for the resolved skills list.
+ * Edges point from prerequisite to dependent skill.
+ * 
+ * @param {string[]} resolvedSkills - Array of resolved skills.
+ * @returns {object} { adjList, inDegrees, nameMap }
+ */
+export const buildDirectedGraph = (resolvedSkills) => {
+  const adjList = {};
+  const inDegrees = {};
+  const skillSet = new Set(resolvedSkills.map(s => s.toLowerCase()));
+  const nameMap = {}; // Maps lowercase skill to original/correct casing
+
+  // Initialize graph structures
+  resolvedSkills.forEach(skill => {
+    const key = skill.toLowerCase();
+    adjList[key] = [];
+    inDegrees[key] = 0;
+    nameMap[key] = skill;
+  });
+
+  // Build edges and in-degrees
+  resolvedSkills.forEach(skill => {
+    const key = skill.toLowerCase();
+    const match = normalizedDependencies[key];
+    if (match) {
+      match.prereqs.forEach(prereq => {
+        const prereqKey = prereq.toLowerCase();
+        // Only build edges within our resolved skills subset
+        if (skillSet.has(prereqKey)) {
+          // Edge goes from prereq -> skill
+          adjList[prereqKey].push(key);
+          inDegrees[key]++;
+        }
+      });
+    }
+  });
+
+  return { adjList, inDegrees, nameMap };
+};
+
+
 
