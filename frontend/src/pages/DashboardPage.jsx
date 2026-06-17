@@ -39,6 +39,47 @@ export default function DashboardPage() {
   const { isLoggedIn, profile, pathway, completedModules, dailyHours } = useApp();
   const navigate = useNavigate();
 
+  const [dashboardData, setDashboardData] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!isLoggedIn) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem("np-mock-user-token");
+        const res = await fetch("/api/dashboard", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch dashboard data: ${res.status}`);
+        }
+
+        const payload = await res.json();
+        if (payload.success) {
+          setDashboardData(payload.data);
+        } else {
+          throw new Error(payload.message || "Failed to fetch dashboard data");
+        }
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [isLoggedIn]);
+
   if (!isLoggedIn) {
     return (
       <div className="pt-6 md:pt-20 pb-16 px-4 md:px-8 max-w-xl mx-auto flex flex-col items-center justify-center text-center gap-5 relative">
@@ -79,6 +120,10 @@ export default function DashboardPage() {
   const completedModulesCount = completedModules.size;
   const calcCompetency = totalModulesCount > 0 ? Math.round((completedModulesCount / totalModulesCount) * 100) : 0;
 
+  const competencyVal = (dashboardData && typeof dashboardData.matchPercentage === "number")
+    ? dashboardData.matchPercentage
+    : calcCompetency;
+
   // Next steps or recommended modules (modules that are not completed yet)
   const pendingModules = [];
   if (pathway?.phases) {
@@ -97,14 +142,49 @@ export default function DashboardPage() {
   }
 
   // Fallback next steps if list is empty
-  const recommendedSteps = pendingModules.length > 0 ? pendingModules.slice(0, 3) : [
-    { tag: "Database Partitioning", title: "Mastering Redis & Memcached Ring Topologies", duration: "45 mins", difficulty: "Intermediate" },
-    { tag: "DevSecOps", title: "Securing Pipelines with CloudKMS & Kubernetes Secrets", duration: "1.2 hours", difficulty: "Advanced" },
-    { tag: "Architecture", title: "Complex Distributed Event Stream Consensus & Raft Protocols", duration: "50 mins", difficulty: "Core Mastery" },
-  ];
+  let recommendedSteps = [];
+  if (dashboardData && Array.isArray(dashboardData.recommendations) && dashboardData.recommendations.length > 0) {
+    recommendedSteps = dashboardData.recommendations.map(rec => {
+      let tag = "Bridge Module";
+      let title = rec;
+      const match = rec.match(/^Learn\s+(.+?)\s+through/i);
+      if (match) {
+        tag = match[1];
+      }
+      return {
+        tag,
+        title,
+        duration: "Self-Paced",
+        difficulty: "Recommended"
+      };
+    });
+  } else if (pendingModules.length > 0) {
+    recommendedSteps = pendingModules.slice(0, 3);
+  } else {
+    recommendedSteps = [
+      { tag: "Database Partitioning", title: "Mastering Redis & Memcached Ring Topologies", duration: "45 mins", difficulty: "Intermediate" },
+      { tag: "DevSecOps", title: "Securing Pipelines with CloudKMS & Kubernetes Secrets", duration: "1.2 hours", difficulty: "Advanced" },
+      { tag: "Architecture", title: "Complex Distributed Event Stream Consensus & Raft Protocols", duration: "50 mins", difficulty: "Core Mastery" },
+    ];
+  }
+
+  const skillChartData = SKILL_DATA.map(skill => {
+    if (dashboardData && Array.isArray(dashboardData.missingSkills)) {
+      const isMissing = dashboardData.missingSkills.some(ms => 
+        ms.toLowerCase().includes(skill.subject.toLowerCase()) || 
+        skill.subject.toLowerCase().includes(ms.toLowerCase())
+      );
+      if (isMissing) {
+        return { ...skill, A: Math.round(skill.fullMark * 0.4) };
+      } else {
+        return { ...skill, A: Math.round(skill.fullMark * 0.85) };
+      }
+    }
+    return skill;
+  });
 
   const stats = [
-    { label: "Calculated Competency", value: `${calcCompetency}%`, icon: TrendingUp, color: "text-emerald-700", bg: "bg-emerald-50" },
+    { label: "Calculated Competency", value: `${competencyVal}%`, icon: TrendingUp, color: "text-emerald-700", bg: "bg-emerald-50" },
     { label: "Accomplished study", value: `${totalHoursTally.toFixed(1)} hrs`, icon: Award, color: "text-amber-800", bg: "bg-amber-50" },
     { label: "Time Spent Lessons", value: `${(totalHoursTally * 0.8).toFixed(1)} hrs`, icon: Clock, color: "text-stone-800", bg: "bg-stone-100" },
     { label: "Direct Roadmap Modules", value: `${completedModulesCount} / ${totalModulesCount}`, icon: BookOpen, color: "text-stone-800", bg: "bg-stone-100" },
@@ -165,7 +245,7 @@ export default function DashboardPage() {
           </div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={SKILL_DATA}>
+              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillChartData}>
                 <PolarGrid stroke="#e5e5e0" />
                 <PolarAngleAxis dataKey="subject" stroke="#78716c" fontSize={11} fontWeight={600} />
                 <Radar
