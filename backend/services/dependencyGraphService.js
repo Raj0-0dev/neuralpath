@@ -157,6 +157,19 @@ export const kahnSort = (graph) => {
   return sorted;
 };
 
+/**
+ * Resolves dependencies and returns the topologically sorted learning sequence of skills.
+ * 
+ * @param {string[]} missingSkills - List of missing skills.
+ * @returns {Promise<string[]>} Ordered learning sequence.
+ */
+export const getOrderedLearningSequence = async (missingSkills) => {
+  const resolved = await resolvePrerequisites(missingSkills);
+  const graph = buildDirectedGraph(resolved);
+  return kahnSort(graph);
+};
+
+
 
 
 
