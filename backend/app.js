@@ -4,6 +4,7 @@ import authRoutes from "./routes/authRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
 import gapRoutes from "./routes/gapRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import learningPathRoutes from "./routes/learningPathRoutes.js";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/gap-analysis", gapRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/learning-path", learningPathRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ 
