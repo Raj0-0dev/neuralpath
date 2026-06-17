@@ -1,9 +1,14 @@
 import Resume from "../models/Resume.js";
 import EmployeeSkill from "../models/EmployeeSkill.js";
 import User from "../models/User.js";
+import GapAnalysis from "../models/GapAnalysis.js";
 import { extractTextFromPDF } from "../services/pdfService.js";
 import { analyzeResumeText } from "../services/aiService.js";
-import { getRequiredSkillsForRole, performProgrammaticAnalysis } from "../services/gapAnalysisService.js";
+import { 
+  getRequiredSkillsForRole, 
+  performProgrammaticAnalysis,
+  performAIGapAnalysis
+} from "../services/gapAnalysisService.js";
 
 export const uploadResume = async (req, res, next) => {
   try {
@@ -48,6 +53,22 @@ export const uploadResume = async (req, res, next) => {
       { 
         skills: aiData.skills,
         matchPercentage: matchPercentage
+      },
+      { upsert: true, new: true }
+    );
+
+    // Perform full AI gap analysis
+    const aiAnalysis = await performAIGapAnalysis(aiData.skills, targetRole);
+
+    // Save/Upsert GapAnalysis results in database
+    await GapAnalysis.findOneAndUpdate(
+      { employeeId },
+      {
+        targetRole,
+        matchingSkills: matchAnalysis.matchingSkills,
+        missingSkills: matchAnalysis.missingSkills,
+        matchPercentage: matchPercentage,
+        recommendations: aiAnalysis.recommendations
       },
       { upsert: true, new: true }
     );

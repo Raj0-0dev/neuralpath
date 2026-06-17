@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import EmployeeSkill from "../models/EmployeeSkill.js";
+import GapAnalysis from "../models/GapAnalysis.js";
 import { 
   getRequiredSkillsForRole, 
   performProgrammaticAnalysis, 
@@ -14,7 +15,10 @@ export const getUserGapAnalysis = async (req, res, next) => {
   try {
     const userId = req.user._id;
 
-    // 1. Fetch user to check targetRole
+    // 1. Check if a pre-calculated gap analysis exists in the database
+    const savedGap = await GapAnalysis.findOne({ employeeId: userId });
+
+    // 2. Fetch user to check targetRole
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -30,25 +34,66 @@ export const getUserGapAnalysis = async (req, res, next) => {
       });
     }
 
-    // 2. Fetch employee skills (default to empty array if no record exists)
+    // 3. Fetch employee skills (default to empty array if no record exists)
     const employeeSkill = await EmployeeSkill.findOne({ employeeId: userId });
     const currentSkills = employeeSkill ? employeeSkill.skills : [];
 
-    // 3. Resolve required skills for targetRole
+    // If a saved gap analysis exists AND matches current targetRole, return it
+    if (savedGap && savedGap.targetRole === user.targetRole) {
+      console.log("[Gap Controller] Found cached GapAnalysis in database");
+      return res.status(200).json({
+        success: true,
+        message: "Profile gap analysis retrieved from database successfully.",
+        data: {
+          employeeId: userId,
+          targetRole: savedGap.targetRole,
+          currentSkills,
+          requiredSkills: await getRequiredSkillsForRole(user.targetRole),
+          programmatic: {
+            matchingSkills: savedGap.matchingSkills,
+            missingSkills: savedGap.missingSkills,
+            matchPercentage: savedGap.matchPercentage
+          },
+          aiAnalysis: {
+            matchPercentage: savedGap.matchPercentage,
+            matchingSkills: savedGap.matchingSkills,
+            missingSkills: savedGap.missingSkills,
+            recommendations: savedGap.recommendations
+          }
+        }
+      });
+    }
+
+    console.log("[Gap Controller] GapAnalysis not found or stale. Calculating and persisting to database...");
+
+    // 4. Resolve required skills for targetRole
     const requiredSkills = await getRequiredSkillsForRole(user.targetRole);
 
-    // 4. Perform programmatic set-comparison
+    // 5. Perform programmatic set-comparison
     const programmatic = performProgrammaticAnalysis(currentSkills, requiredSkills);
 
-    // 5. Perform AI suitability assessment
+    // 6. Perform AI suitability assessment
     const aiAnalysis = await performAIGapAnalysis(currentSkills, user.targetRole);
+
+    // 7. Store/Persist results in database
+    const newGap = await GapAnalysis.findOneAndUpdate(
+      { employeeId: userId },
+      {
+        targetRole: user.targetRole,
+        matchingSkills: programmatic.matchingSkills,
+        missingSkills: programmatic.missingSkills,
+        matchPercentage: programmatic.matchPercentage,
+        recommendations: aiAnalysis.recommendations
+      },
+      { upsert: true, new: true }
+    );
 
     res.status(200).json({
       success: true,
-      message: "Profile gap analysis completed successfully.",
+      message: "Profile gap analysis completed and persisted successfully.",
       data: {
         employeeId: userId,
-        targetRole: user.targetRole,
+        targetRole: newGap.targetRole,
         currentSkills,
         requiredSkills,
         programmatic,
