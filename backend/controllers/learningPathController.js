@@ -77,6 +77,22 @@ export const completeModule = async (req, res, next) => {
       progress.completedSkills.push(normalizedSkillName);
     }
 
+    // Recalculate learning completion percentage
+    const path = await LearningPath.findOne({ employeeId });
+    if (path) {
+      let totalModules = 0;
+      path.phases.forEach(phase => {
+        totalModules += phase.modules.length;
+      });
+
+      const completedCount = progress.completedModules.length;
+      progress.learningCompletionPercentage = totalModules > 0
+        ? Math.round((completedCount / totalModules) * 100)
+        : 100;
+    } else {
+      progress.learningCompletionPercentage = 0;
+    }
+
     await progress.save();
 
     res.status(200).json({
