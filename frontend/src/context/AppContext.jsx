@@ -196,6 +196,35 @@ export function AppProvider({ children }) {
         setDailyHours({});
     };
 
+    const loadLearningPath = async () => {
+        const token = localStorage.getItem("np-mock-user-token");
+        if (!token) return;
+
+        try {
+            const res = await fetch("/api/learning-path", {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                const pathData = result.data.pathway;
+                const progressData = result.data.progress;
+
+                if (pathData) {
+                    setPathwayState(pathData);
+                }
+                if (progressData) {
+                    setCompletedModules(new Set(progressData.completedModules || []));
+                }
+            }
+        } catch (err) {
+            console.error("Failed to load learning path:", err);
+        }
+    };
+
     const loadGapAnalysis = async () => {
         const token = localStorage.getItem("np-mock-user-token");
         if (!token) return;
@@ -219,27 +248,6 @@ export function AppProvider({ children }) {
                     extractedSkills: gapData.currentSkills,
                     gaps: gapData.programmatic.missingSkills
                 });
-
-                // Generate dynamic modules from missing skills
-                const phases = [
-                    {
-                        title: "Phase 1: Bridge Core Gaps",
-                        color: "#8b5cf6",
-                        modules: gapData.programmatic.missingSkills.map((skill, index) => ({
-                            id: `mod_${index}`,
-                            title: `Mastery Course: ${skill}`,
-                            type: "Course",
-                            duration: "3 hrs",
-                            level: "Advanced",
-                            description: `Deep-dive study and practical deployment assignments to acquire competency in ${skill}.`
-                        }))
-                    }
-                ];
-                setPathwayState({
-                    candidateName: user?.name || "Candidate",
-                    targetRole: gapData.targetRole,
-                    phases
-                });
             }
         } catch (err) {
             console.error("Failed to load gap analysis on state hydration:", err);
@@ -249,8 +257,35 @@ export function AppProvider({ children }) {
     useEffect(() => {
         if (user) {
             loadGapAnalysis();
+            loadLearningPath();
         }
     }, [user]);
+
+    const toggleModuleCompleted = async (moduleId, skillName) => {
+        const token = localStorage.getItem("np-mock-user-token");
+        if (!token) return;
+
+        try {
+            const res = await fetch("/api/learning-path/complete", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ moduleId, skillName })
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                const progressData = result.data;
+                setCompletedModules(new Set(progressData.completedModules || []));
+                // Reload learning path to capture updated completion stats
+                await loadLearningPath();
+            }
+        } catch (err) {
+            console.error("Failed to complete module:", err);
+        }
+    };
 
     const isLoggedIn = !!user;
 
@@ -268,7 +303,7 @@ export function AppProvider({ children }) {
         setPathway: setPathwayState,
         adaptPathwayOnServer: () => Promise.resolve(null),
         completedModules,
-        toggleModuleCompleted: () => Promise.resolve(),
+        toggleModuleCompleted,
         activityLog,
         setActivityLog,
         dailyHours,
@@ -277,6 +312,7 @@ export function AppProvider({ children }) {
         isLoggedIn,
         refreshProgress,
         loadGapAnalysis,
+        loadLearningPath,
         signInEmail: loginUser,
         signUpEmail: signupUser,
         signInGoogle: signinGoogle
