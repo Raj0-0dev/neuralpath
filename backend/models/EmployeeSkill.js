@@ -12,6 +12,10 @@ const employeeSkillSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    matchPercentage: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

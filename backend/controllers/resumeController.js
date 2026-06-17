@@ -3,6 +3,7 @@ import EmployeeSkill from "../models/EmployeeSkill.js";
 import User from "../models/User.js";
 import { extractTextFromPDF } from "../services/pdfService.js";
 import { analyzeResumeText } from "../services/aiService.js";
+import { getRequiredSkillsForRole, performProgrammaticAnalysis } from "../services/gapAnalysisService.js";
 
 export const uploadResume = async (req, res, next) => {
   try {
@@ -27,19 +28,29 @@ export const uploadResume = async (req, res, next) => {
     // Analyze raw text using the AI service to extract skills and target role
     const aiData = await analyzeResumeText(extractedText);
 
-    // Store/Upsert extracted skills in the EmployeeSkill model
+    const targetRole = aiData.targetRole || "Professional";
+
+    // Update target role in User model
+    await User.findByIdAndUpdate(employeeId, {
+      targetRole: targetRole,
+    });
+
+    // Resolve required skills for targetRole
+    const requiredSkills = await getRequiredSkillsForRole(targetRole);
+
+    // Compute programmatic match percentage
+    const matchAnalysis = performProgrammaticAnalysis(aiData.skills, requiredSkills);
+    const matchPercentage = matchAnalysis.matchPercentage;
+
+    // Store/Upsert extracted skills and matchPercentage in the EmployeeSkill model
     const employeeSkill = await EmployeeSkill.findOneAndUpdate(
       { employeeId },
-      { skills: aiData.skills },
+      { 
+        skills: aiData.skills,
+        matchPercentage: matchPercentage
+      },
       { upsert: true, new: true }
     );
-
-    // Update target role in User model if returned by AI
-    if (aiData.targetRole) {
-      await User.findByIdAndUpdate(employeeId, {
-        targetRole: aiData.targetRole,
-      });
-    }
 
     res.status(201).json({
       success: true,
@@ -55,7 +66,8 @@ export const uploadResume = async (req, res, next) => {
         uploadedAt: resume.uploadedAt,
         extractedText: resume.extractedText,
         skills: employeeSkill.skills,
-        targetRole: aiData.targetRole || "",
+        targetRole: targetRole,
+        matchPercentage: employeeSkill.matchPercentage,
       },
     });
   } catch (error) {

@@ -60,7 +60,7 @@ export function AppProvider({ children }) {
             }
 
             try {
-                const res = await fetch("http://localhost:3000/api/auth/me", {
+                const res = await fetch("/api/auth/me", {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -108,7 +108,7 @@ export function AppProvider({ children }) {
             throw new Error("Email and password are required.");
         }
 
-        const res = await fetch("http://localhost:3000/api/auth/login", {
+        const res = await fetch("/api/auth/login", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -142,7 +142,7 @@ export function AppProvider({ children }) {
             throw new Error("Missing required registration fields.");
         }
 
-        const res = await fetch("http://localhost:3000/api/auth/register", {
+        const res = await fetch("/api/auth/register", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -175,7 +175,7 @@ export function AppProvider({ children }) {
         const token = localStorage.getItem("np-mock-user-token");
         if (token) {
             try {
-                await fetch("http://localhost:3000/api/auth/logout", {
+                await fetch("/api/auth/logout", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -195,6 +195,62 @@ export function AppProvider({ children }) {
         setActivityLog([]);
         setDailyHours({});
     };
+
+    const loadGapAnalysis = async () => {
+        const token = localStorage.getItem("np-mock-user-token");
+        if (!token) return;
+
+        try {
+            const res = await fetch("/api/gap-analysis/my-profile", {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                const gapData = result.data;
+                setAnalysisState({
+                    candidateName: user?.name || "Candidate",
+                    targetRole: gapData.targetRole,
+                    overallReadiness: gapData.programmatic.matchPercentage,
+                    timeToReadiness: gapData.programmatic.matchPercentage >= 75 ? "1-3 weeks" : "3-6 weeks",
+                    extractedSkills: gapData.currentSkills,
+                    gaps: gapData.programmatic.missingSkills
+                });
+
+                // Generate dynamic modules from missing skills
+                const phases = [
+                    {
+                        title: "Phase 1: Bridge Core Gaps",
+                        color: "#8b5cf6",
+                        modules: gapData.programmatic.missingSkills.map((skill, index) => ({
+                            id: `mod_${index}`,
+                            title: `Mastery Course: ${skill}`,
+                            type: "Course",
+                            duration: "3 hrs",
+                            level: "Advanced",
+                            description: `Deep-dive study and practical deployment assignments to acquire competency in ${skill}.`
+                        }))
+                    }
+                ];
+                setPathwayState({
+                    candidateName: user?.name || "Candidate",
+                    targetRole: gapData.targetRole,
+                    phases
+                });
+            }
+        } catch (err) {
+            console.error("Failed to load gap analysis on state hydration:", err);
+        }
+    };
+
+    useEffect(() => {
+        if (user) {
+            loadGapAnalysis();
+        }
+    }, [user]);
 
     const isLoggedIn = !!user;
 
@@ -220,6 +276,7 @@ export function AppProvider({ children }) {
         handleLogOut,
         isLoggedIn,
         refreshProgress,
+        loadGapAnalysis,
         signInEmail: loginUser,
         signUpEmail: signupUser,
         signInGoogle: signinGoogle

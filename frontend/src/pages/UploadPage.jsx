@@ -29,40 +29,33 @@ const PRESETS = [
 ];
 
 export default function UploadPage() {
-  const { resumeText, setResumeText, jdText, setJdText, setAnalysis, setPathway, analysis } = useApp();
+  const { profile, setAnalysis, setPathway, analysis, loadGapAnalysis } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fileDetails, setFileDetails] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
     if (file) {
       setFileDetails({ name: file.name, size: file.size });
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result;
-        setResumeText(text || "");
-      };
-      reader.readAsText(file);
+      setSelectedFile(file);
+      setError(null);
     }
-  }, [setResumeText]);
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "text/plain": [".txt"] },
+    accept: { "application/pdf": [".pdf"] },
     multiple: false,
   });
 
-  const handlePresetSelect = (p) => {
-    setJdText(p.description);
-  };
-
   const handleAnalyze = async () => {
-    if (!resumeText.trim()) {
-      setError("Please upload raw resume text files first.");
+    if (!selectedFile) {
+      setError("Please upload or drop a PDF resume file first.");
       return;
     }
 
@@ -70,117 +63,78 @@ export default function UploadPage() {
     setError(null);
 
     try {
-      const token = localStorage.getItem("np-token");
+      const token = localStorage.getItem("np-mock-user-token");
       
-      let extracted;
-      try {
-        const res = await fetch("/api/extract", {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({ resumeText, jdText }),
-        });
+      const formData = new FormData();
+      formData.append("resume", selectedFile);
 
-        if (!res.ok) {
-          const errPayload = await res.json().catch(() => ({}));
-          throw new Error(errPayload.error || `HTTP extraction failed with code ${res.status}`);
-        }
-        extracted = await res.json();
-      } catch (fetchErr) {
-        console.warn("Backend API unavailable, executing client-side mock analyzer fallback:", fetchErr);
-        // Simulate delay for high-fidelity feel
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        
-        // Determine role and set mock results
-        let targetRole = "Lead Software Engineer";
-        let readiness = 70;
-        let skills = ["Core Coding Practice", "Git Version Control", "Modern UI Layouts"];
-        let gaps = ["Advanced Distributed Architectures", "High-Performance Testing Frameworks", "Production Container Orchestration"];
-        let phases = [];
+      const res = await fetch("/api/resumes/upload", {
+        method: "POST",
+        headers: { 
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: formData,
+      });
 
-        if (jdText.includes("MLOps")) {
-          targetRole = "MLOps Engineer (Critical Systems)";
-          readiness = 65;
-          skills = ["Python Coding", "Docker Containerization", "TensorFlow & PyTorch", "AWS S3 / EC2 Platforms"];
-          gaps = ["Kubernetes Micro-Service Deployments", "Advanced Distributed Logging & ELK Stack", "Data Pipeline Validation with Great Expectations"];
-          phases = [
-            {
-              title: "Phase 1: Containers & MLOps Pipelines",
-              color: "#f59e0b",
-              modules: [
-                { id: "k8s_deploy", title: "Kubernetes Micro-Service Deployments", type: "Course", duration: "3 hrs", level: "Advanced" },
-                { id: "elk_logging", title: "Advanced Distributed Logging & ELK Stack", type: "Lab", duration: "2 hrs", level: "Expert" },
-                { id: "data_val", title: "Data Pipeline Validation with Great Expectations", type: "Workshop", duration: "1.5 hrs", level: "Intermediate" }
-              ]
-            }
-          ];
-        } else if (jdText.includes("Architect")) {
-          targetRole = "Senior Full Stack Architect (Agile)";
-          readiness = 78;
-          skills = ["React Enterprise Components", "TypeScript Systems", "Node.js REST Engines", "PostgreSQL Design"];
-          gaps = ["High-Throughput WebSockets & Server Sent Events", "Database Partitioning & Redis Ring Topologies", "Consolidated Unit Testing Suites (Vitest)"];
-          phases = [
-            {
-              title: "Phase 1: Advanced Scaled Architecture",
-              color: "#3b82f6",
-              modules: [
-                { id: "websockets_sse", title: "High-Throughput WebSockets & Server Sent Events", type: "Workshop", duration: "2.5 hrs", level: "Advanced" },
-                { id: "redis_ring", title: "Database Partitioning & Redis Ring Topologies", type: "Lab", duration: "3 hrs", level: "Advanced" },
-                { id: "vitest_suite", title: "Consolidated Unit Testing Suites (Vitest)", type: "Course", duration: "1.8 hrs", level: "Intermediate" }
-              ]
-            }
-          ];
-        } else if (jdText.includes("Manager")) {
-          targetRole = "Enterprise Project Manager";
-          readiness = 82;
-          skills = ["Agile Sprint Management", "Technical Project Delivery", "Client Communications", "Risk Mitigation Protocols"];
-          gaps = ["Agile/Scrum Sprint Topology & JIRA Workflows", "System Design Basic Foundations", "Strategic Leadership in Critical Incident Response"];
-          phases = [
-            {
-              title: "Phase 1: Project Management Foundations",
-              color: "#10b981",
-              modules: [
-                { id: "jira_sprint", title: "Agile/Scrum Sprint Topology & JIRA Workflows", type: "Course", duration: "2 hrs", level: "Intermediate" },
-                { id: "sys_design_basic", title: "System Design Basic Foundations", type: "Course", duration: "4 hrs", level: "Intermediate" },
-                { id: "incident_leadership", title: "Strategic Leadership in Critical Incident Response", type: "Workshop", duration: "3 hrs", level: "Advanced" }
-              ]
-            }
-          ];
-        } else {
-          phases = [
-            {
-              title: "Phase 1: Core Systems Bridging",
-              color: "#8b5cf6",
-              modules: [
-                { id: "dist_arch", title: "Advanced Distributed Architectures", type: "Course", duration: "3 hrs", level: "Advanced" },
-                { id: "perf_test", title: "High-Performance Testing Frameworks", type: "Lab", duration: "2 hrs", level: "Intermediate" },
-                { id: "prod_k8s", title: "Production Container Orchestration", type: "Workshop", duration: "4 hrs", level: "Expert" }
-              ]
-            }
-          ];
-        }
-
-        extracted = {
-          analysis: {
-            candidateName: "Harsh Rajput",
-            targetRole,
-            overallReadiness: readiness,
-            timeToReadiness: "3-6 weeks",
-            extractedSkills: skills,
-            gaps
-          },
-          pathway: {
-            candidateName: "Harsh Rajput",
-            targetRole,
-            phases
-          }
-        };
+      if (!res.ok) {
+        const errPayload = await res.json().catch(() => ({}));
+        throw new Error(errPayload.message || `Upload failed with status code ${res.status}`);
       }
 
-      await setAnalysis(extracted.analysis);
-      await setPathway(extracted.pathway);
+      const result = await res.json();
+      
+      // Update global context states with the returned data
+      setAnalysis({
+        candidateName: profile?.name || "Candidate",
+        targetRole: result.data.targetRole,
+        overallReadiness: result.data.matchPercentage,
+        timeToReadiness: result.data.matchPercentage >= 75 ? "1-3 weeks" : "3-6 weeks",
+        extractedSkills: result.data.skills,
+        gaps: []
+      });
+
+      // Fetch dynamic gap analysis from backend to hydrate missing skills
+      try {
+        const gapRes = await fetch("/api/gap-analysis/my-profile", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (gapRes.ok) {
+          const gapData = await gapRes.json();
+          setAnalysis({
+            candidateName: profile?.name || "Candidate",
+            targetRole: result.data.targetRole,
+            overallReadiness: gapData.data.programmatic.matchPercentage,
+            timeToReadiness: gapData.data.programmatic.matchPercentage >= 75 ? "1-3 weeks" : "3-6 weeks",
+            extractedSkills: result.data.skills,
+            gaps: gapData.data.programmatic.missingSkills
+          });
+
+          // Generate dynamic phases based on actual missing skills
+          const phases = [
+            {
+              title: "Phase 1: Bridge Core Gaps",
+              color: "#8b5cf6",
+              modules: gapData.data.programmatic.missingSkills.map((skill, index) => ({
+                id: `mod_${index}`,
+                title: `Mastery Course: ${skill}`,
+                type: "Course",
+                duration: "3 hrs",
+                level: "Advanced",
+                description: `Deep-dive study and practical deployment assignments to acquire competency in ${skill}.`
+              }))
+            }
+          ];
+          setPathway({
+            candidateName: profile?.name || "Candidate",
+            targetRole: result.data.targetRole,
+            phases
+          });
+        }
+      } catch (gapErr) {
+        console.error("Failed to load gap details dynamically:", gapErr);
+      }
       
       setStep(2);
     } catch (err) {
@@ -251,7 +205,7 @@ export default function UploadPage() {
                 <div className="text-sm font-bold text-stone-800">
                   {fileDetails ? fileDetails.name : "Select or drop PDF resume file"}
                 </div>
-                <p className="text-stone-400 text-xs mt-1">Accepts raw TXT, DOCX, PDF up to 10MB</p>
+                <p className="text-stone-400 text-xs mt-1">Accepts PDF resumes up to 5MB</p>
               </div>
             </div>
 
@@ -264,8 +218,8 @@ export default function UploadPage() {
 
             <button
               onClick={handleAnalyze}
-              disabled={loading || !resumeText.trim()}
-              className="w-full py-4 bg-stone-900 hover:bg-stone-800 disabled:bg-stone-100 disabled:text-stone-400 text-white font-bold rounded-full shadow-sm transition-all flex items-center justify-center gap-2 text-sm active:scale-98 cursor-pointer"
+              disabled={loading || !selectedFile}
+              className="w-full py-4 bg-stone-900 hover:bg-stone-850 disabled:bg-stone-100 disabled:text-stone-400 text-white font-bold rounded-full shadow-sm transition-all flex items-center justify-center gap-2 text-sm active:scale-98 cursor-pointer"
             >
               {loading ? (
                 <>
