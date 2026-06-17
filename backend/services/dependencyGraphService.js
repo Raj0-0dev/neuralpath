@@ -169,6 +169,68 @@ export const getOrderedLearningSequence = async (missingSkills) => {
   return kahnSort(graph);
 };
 
+/**
+ * Generates structured learning phases and modules from a sorted list of skills.
+ * 
+ * @param {string[]} sortedSkills - Topologically sorted skills.
+ * @returns {object[]} Array of generated phases matching the schema.
+ */
+export const generatePhasesFromSortedSkills = (sortedSkills) => {
+  if (!Array.isArray(sortedSkills) || sortedSkills.length === 0) {
+    return [];
+  }
+
+  const total = sortedSkills.length;
+  // Divide into at most 3 phases
+  let p1Size = Math.ceil(total / 3);
+  let p2Size = Math.ceil((total - p1Size) / 2);
+
+  // If very few skills, just put them in 1 or 2 phases
+  if (total <= 3) {
+    p1Size = total;
+    p2Size = 0;
+  }
+
+  const phaseSkills = [
+    sortedSkills.slice(0, p1Size),
+    sortedSkills.slice(p1Size, p1Size + p2Size),
+    sortedSkills.slice(p1Size + p2Size)
+  ].filter(arr => arr.length > 0);
+
+  const colors = ["#8b5cf6", "#d97706", "#059669"];
+  const titles = [
+    "Phase 1: Foundational Prerequisites",
+    "Phase 2: Core Gap Competencies",
+    "Phase 3: Advanced Applications"
+  ];
+
+  return phaseSkills.map((skills, idx) => {
+    return {
+      title: titles[idx] || `Phase ${idx + 1}: Technical Integration`,
+      color: colors[idx] || "#4f46e5",
+      modules: skills.map((skill, index) => {
+        const type = index % 2 === 0 ? "Course" : "Lab";
+        const duration = index % 2 === 0 ? "3 hrs" : "2 hrs";
+        const level = idx === 0 ? "Basic" : idx === 1 ? "Intermediate" : "Advanced";
+        const description = type === "Course" 
+          ? `Master essential theories, patterns, and hands-on designs to acquire industry proficiency in ${skill}.`
+          : `Practical workspace sandbox lab with unit tests and challenges targeting ${skill} integration.`;
+
+        return {
+          id: `mod_${idx}_${index}_${skill.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
+          title: type === "Course" ? `Fundamentals of ${skill}` : `${skill} Engineering Lab`,
+          type,
+          duration,
+          level,
+          description,
+          skillName: skill
+        };
+      })
+    };
+  });
+};
+
+
 
 
 
