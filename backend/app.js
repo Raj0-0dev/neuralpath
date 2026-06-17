@@ -3,6 +3,7 @@ import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
 import gapRoutes from "./routes/gapRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/gap-analysis", gapRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ 
