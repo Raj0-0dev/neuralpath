@@ -109,5 +109,54 @@ export const buildDirectedGraph = (resolvedSkills) => {
   return { adjList, inDegrees, nameMap };
 };
 
+/**
+ * Performs Kahn's topological sort on a directed graph of skills.
+ * 
+ * @param {object} graph - Graph structure containing adjList, inDegrees, and nameMap.
+ * @returns {string[]} Ordered list of skill names (original casing).
+ */
+export const kahnSort = (graph) => {
+  const { adjList, inDegrees, nameMap } = graph;
+  const queue = [];
+  const sorted = [];
+
+  // Enqueue all nodes with in-degree of 0
+  for (const [node, inDegree] of Object.entries(inDegrees)) {
+    if (inDegree === 0) {
+      queue.push(node);
+    }
+  }
+
+  // Process the queue
+  while (queue.length > 0) {
+    const node = queue.shift();
+    sorted.push(nameMap[node]);
+
+    const neighbors = adjList[node] || [];
+    for (const neighbor of neighbors) {
+      inDegrees[neighbor]--;
+      if (inDegrees[neighbor] === 0) {
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  // Check for cycles
+  const totalNodesCount = Object.keys(inDegrees).length;
+  if (sorted.length < totalNodesCount) {
+    console.warn("[Kahn Sort] Cycle detected in dependencies! Graph is not a DAG.");
+    // Fallback: append any unvisited nodes to ensure no skill is lost
+    const sortedSet = new Set(sorted.map(s => s.toLowerCase()));
+    for (const key of Object.keys(inDegrees)) {
+      if (!sortedSet.has(key)) {
+        sorted.push(nameMap[key]);
+      }
+    }
+  }
+
+  return sorted;
+};
+
+
 
 
