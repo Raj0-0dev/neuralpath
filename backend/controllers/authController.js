@@ -2,7 +2,7 @@ import { registerUser, authenticateUser, generateToken } from "../services/authS
 
 export const register = async (req, res, next) => {
   try {
-    const { email, password, role, name } = req.body;
+    const { email, password, role, name, targetRole, company } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -11,7 +11,7 @@ export const register = async (req, res, next) => {
       });
     }
 
-    const user = await registerUser({ email, password, role, name });
+    const user = await registerUser({ email, password, role, name, targetRole, company });
 
     res.status(201).json({
       success: true,
@@ -21,6 +21,8 @@ export const register = async (req, res, next) => {
         email: user.email,
         role: user.role,
         name: user.name,
+        targetRole: user.targetRole,
+        company: user.company,
       },
     });
   } catch (error) {
@@ -57,6 +59,8 @@ export const login = async (req, res, next) => {
         email: user.email,
         role: user.role,
         name: user.name,
+        targetRole: user.targetRole,
+        company: user.company,
       },
     });
   } catch (error) {

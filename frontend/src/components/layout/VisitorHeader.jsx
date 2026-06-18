@@ -55,7 +55,14 @@ export default function VisitorHeader() {
                         </div>
                     ) : (
                         <div className="hidden md:flex items-center gap-5">
-                            {location.pathname !== '/login' && (
+                            {location.pathname === '/login' ? (
+                                <Link
+                                    to="/"
+                                    className="text-xs font-bold text-stone-600 hover:text-stone-900 transition-colors"
+                                >
+                                    Home
+                                </Link>
+                            ) : (
                                 <Link
                                     to="/login"
                                     className="text-xs font-bold text-stone-600 hover:text-stone-900 transition-colors"
@@ -96,13 +103,23 @@ export default function VisitorHeader() {
                         className="absolute left-0 right-0 top-16 bg-[#FCFBF9] border border-stone-200 shadow-xl rounded-3xl p-4 overflow-hidden md:hidden mx-2 mt-1"
                     >
                         <div className="space-y-2">
-                            <Link
-                                to="/login"
-                                onClick={() => setIsOpen(false)}
-                                className="block text-center py-3 rounded-2xl text-sm font-semibold text-stone-700 hover:bg-stone-100 transition-colors"
-                            >
-                                Sign In
-                            </Link>
+                            {location.pathname === '/login' ? (
+                                <Link
+                                    to="/"
+                                    onClick={() => setIsOpen(false)}
+                                    className="block text-center py-3 rounded-2xl text-sm font-semibold text-stone-700 hover:bg-stone-100 transition-colors"
+                                >
+                                    Go to Homepage
+                                </Link>
+                            ) : (
+                                <Link
+                                    to="/login"
+                                    onClick={() => setIsOpen(false)}
+                                    className="block text-center py-3 rounded-2xl text-sm font-semibold text-stone-700 hover:bg-stone-100 transition-colors"
+                                >
+                                    Sign In
+                                </Link>
+                            )}
                             <Link
                                 to="/login"
                                 onClick={() => setIsOpen(false)}

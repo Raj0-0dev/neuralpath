@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import {
@@ -13,8 +13,22 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 
 export default function LoginPage() {
-    const { refreshProgress, signInEmail, signUpEmail, signInGoogle } = useApp();
+    const { isLoggedIn, profile, authLoading, refreshProgress, signInEmail, signUpEmail, signInGoogle } = useApp();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!authLoading && isLoggedIn) {
+            if (profile?.role === "admin") {
+                navigate("/admin", { replace: true });
+            } else {
+                navigate("/dashboard", { replace: true });
+            }
+        }
+    }, [isLoggedIn, profile, authLoading, navigate]);
+
+    if (authLoading) {
+        return null;
+    }
 
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");

@@ -1,12 +1,26 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { Compass, FileText, ArrowRight, Target } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function HomePage() {
-    const { isLoggedIn, profile } = useApp();
+    const { isLoggedIn, profile, authLoading } = useApp();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!authLoading && isLoggedIn) {
+            if (profile?.role === "admin") {
+                navigate("/admin", { replace: true });
+            } else {
+                navigate("/dashboard", { replace: true });
+            }
+        }
+    }, [isLoggedIn, profile, authLoading, navigate]);
+
+    if (authLoading) {
+        return null;
+    }
 
     const handleHeroClick = () => {
         if (isLoggedIn) {
@@ -71,12 +85,7 @@ export default function HomePage() {
                         >
                             Assess Your Path <ArrowRight size={14} />
                         </button>
-                        <button
-                            onClick={() => navigate(isLoggedIn ? "/dashboard" : "/login")}
-                            className="bg-white text-stone-900 font-semibold text-xs py-3.5 px-6 rounded-full border border-stone-200 shadow-sm hover:bg-stone-50 transition-all active:scale-95 duration-100 cursor-pointer"
-                        >
-                            Access Dashboard
-                        </button>
+
                     </motion.div>
                 </div>
 

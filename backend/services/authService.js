@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 export const registerUser = async (userData) => {
-  const { email, password, role, name } = userData;
+  const { email, password, role, name, targetRole, company } = userData;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -14,6 +14,8 @@ export const registerUser = async (userData) => {
     password,
     role: role || "employee",
     name: name || email.split("@")[0],
+    targetRole: targetRole || "",
+    company: company || "",
   });
 
   await user.save();

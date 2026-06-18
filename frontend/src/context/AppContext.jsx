@@ -127,6 +127,8 @@ export function AppProvider({ children }) {
             email: data.user.email,
             name: data.user.name,
             role: data.user.role,
+            targetRole: data.user.targetRole || "",
+            company: data.user.company || "",
         };
 
         localStorage.setItem("np-mock-user-token", data.token);
