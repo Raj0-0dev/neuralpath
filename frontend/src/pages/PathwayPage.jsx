@@ -197,3 +197,202 @@ export default function PathwayPage() {
         console.log = (...args) => {
           customLog += args.join(" ") + "\n";
         };
+// Execute code
+        new Function(sandboxCode)();
+
+        console.log = originalConsoleLog;
+        setSandboxOutput((prev) => prev + "\n[System Logs]\n" + customLog + "\n[Result: COMPILATION SUCCESSFUL]");
+      } catch (err) {
+        setSandboxOutput((prev) => prev + `\n🛑 [Compiler Error] ${err.message}`);
+      } finally {
+        setSandboxRunning(false);
+      }
+    }, 1200);
+  };
+
+  const totalModulesCount = allModules.length;
+  const completedModulesCount = allModules.filter((m) => completedModules.has(m.id)).length;
+  const pathReadinessProgress =
+    totalModulesCount > 0 ? Math.round((completedModulesCount / totalModulesCount) * 100) : 0;
+
+  return (
+    <div className="pt-6 md:pt-14 pb-16 px-4 md:px-8 max-w-7xl mx-auto space-y-8 relative">
+      <div className="relative z-10">
+
+        {/* Dynamic Roadtrack Sequential Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+          {/* LEFT COLUMN: CURRICULUM PATH TIMELINE & INTENTIONAL GAP CAPTURE */}
+          <div className="lg:col-span-5 space-y-6">
+
+            {/* CARD 1: CURRICULUM PATH */}
+            <div className="bg-white border border-stone-200/80 rounded-[28px] p-6 shadow-sm">
+              <div className="flex items-center gap-2.5 mb-6 pb-2 border-b border-stone-100">
+                <Compass className="text-stone-700" size={18} />
+                <h2 className="font-sans text-[11px] font-black text-stone-400 uppercase tracking-widest">
+                  Curriculum Path
+                </h2>
+              </div>
+
+              {/* Timeline Modules Sequence list */}
+              <div className="relative pl-1 pr-1 space-y-0.5">
+                {/* Vertical Connector Line running behind indicators */}
+                <div
+                  className="absolute left-6 top-5 bottom-8 w-[2px] bg-stone-100 pointer-events-none"
+                  aria-hidden="true"
+                />
+
+                {allModules.map((mod, idx) => {
+                  const isDone = completedModules.has(mod.id);
+                  const isActive = activeModule?.id === mod.id;
+                  const isRemedial = mod.id.includes("remedial_");
+
+                  return (
+                    <div
+                      key={mod.id}
+                      onClick={() => {
+                        setSelectedModuleId(mod.id);
+                        setActiveSection(1);
+                      }}
+                      className={`relative flex items-start gap-5 p-4 rounded-2xl cursor-pointer transition-all duration-200 select-none ${isActive
+                        ? "bg-amber-50/40 border border-amber-200/60"
+                        : "border border-transparent hover:bg-stone-50/60"
+                        }`}
+                    >
+                      {/* Left Dot Indicator */}
+                      <div className="relative z-10 flex items-center justify-center w-4 h-4 mt-1">
+                        {isDone ? (
+                          <div className="w-5 h-5 rounded-full bg-emerald-600 border border-emerald-600 flex items-center justify-center shrink-0">
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        ) : isActive ? (
+                          <div className="w-5 h-5 rounded-full bg-white border-2 border-stone-900 flex items-center justify-center shrink-0">
+                            <div className="w-2.5 h-2.5 rounded-full bg-stone-900" />
+                          </div>
+                        ) : (
+                          <div className="w-4 h-4 rounded-full bg-white border border-stone-300 shrink-0" />
+                        )}
+                      </div>
+
+                      {/* Title & Stats */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className={`text-xs font-bold leading-tight tracking-tight ${isActive ? "text-stone-950" : isDone ? "text-stone-400 font-medium" : "text-stone-700"
+                            }`}>
+                            {mod.title}
+                          </h4>
+                          {isRemedial && (
+                            <span className="text-[8px] font-black tracking-wider uppercase text-amber-900 bg-amber-50 border border-amber-200/50 px-1 rounded-sm">
+                              Remedial
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-stone-400 font-semibold mt-1 uppercase tracking-wide">
+                          {mod.duration} • {mod.level || "Intermediate"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* CARD 2: INTELLIGENT GAP FIX */}
+            <div className="bg-white border border-stone-200/80 rounded-[28px] p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="text-amber-500 fill-amber-500" size={16} />
+                <h3 className="text-[11px] font-black text-stone-400 uppercase tracking-widest">
+                  Intelligent Gap Fix
+                </h3>
+              </div>
+              <p className="text-xs text-stone-600 font-medium leading-relaxed">
+                Based on gaps identified, modules prioritize <strong className="text-stone-900 font-bold">"{activeModule?.title || "TypeScript Performance"}"</strong> to establish advanced architectural foundations faster.
+              </p>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: ACTIVE COURSE LESSON PLAYER */}
+          <div className="lg:col-span-7 bg-[#FCFBF9] border border-stone-200/90 rounded-[32px] p-6 sm:p-8 shadow-sm space-y-6">
+
+            {/* Top Chapter Progress Label Bar */}
+            <div className="flex items-center justify-between ">
+              <div className="bg-stone-100 text-stone-500 font-mono font-bold text-[9px] uppercase tracking-widest px-3 py-1 rounded">
+                Active Chapter
+              </div>
+              {/* Segment Selection Nodes */}
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => setActiveSection(num)}
+                    className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${activeSection === num
+                      ? "bg-stone-100 border border-stone-200 text-stone-950 scale-105"
+                      : "text-stone-400 hover:text-stone-600 bg-transparent"
+                      }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Title Section */}
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight leading-none mb-2">
+                {activeModule?.title || "TypeScript Performance"}
+              </h2>
+              <p className="text-stone-500 text-xs font-semibold">
+                Core Module Type: <span className="text-amber-800 font-bold">{activeModule?.type || "Lesson"}</span> • {activeModule?.duration || "1.8 HRS"}
+              </p>
+            </div>
+
+            {/* Elegant Black/Dark Video Player */}
+            <div className="relative overflow-hidden aspect-video bg-[#0c0a09] rounded-3xl group shadow-sm flex flex-col justify-between p-6">
+              <div /> {/* spacing div */}
+
+              {/* Centered Premium Glassy Play Trigger Button */}
+              <button
+                className="w-16 h-16 rounded-full bg-white text-stone-950 flex items-center justify-center shadow-2xl mx-auto hover:scale-105 transition-transform group-hover:bg-amber-50 cursor-pointer"
+                aria-label="Play Lesson Simulation"
+              >
+                <div className="translate-x-0.5">
+                  <Play size={20} className="fill-stone-950 stroke-stone-950 text-stone-950" />
+                </div>
+              </button>
+
+              {/* Bottom video stats bar */}
+              <div className="flex items-center justify-between text-white/90 text-[11px] font-bold font-mono">
+                <span className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
+                  <Clock size={12} className="text-amber-400" />
+                  <span>{activeModule?.duration || "18:42"} Lessons</span>
+                </span>
+                <span className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 uppercase tracking-wider">
+                  Section {activeIndex + 1} of {totalModulesCount}
+                </span>
+              </div>
+            </div>
+
+            {/* Description box of simulated Segment Content */}
+            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200/50 text-xs text-stone-600 font-medium leading-relaxed">
+              {activeSection === 1 && (
+                <>
+                  <div className="font-bold text-stone-900 mb-1">Concept Definition & Structures</div>
+                  {activeModule?.description || "High level technical summary mapping core constraints dynamically aligned to corporate workflows."}
+                </>
+              )}
+              {activeSection === 2 && (
+                <>
+                  <div className="font-bold text-stone-900 mb-1">Performance Benchmarks & Profiling</div>
+                  Explore execution stack limitations, dynamic RAM leak mitigations, and performance diagnostic pipelines related to this lesson. We examine optimal execution layers mapped strictly.
+                </>
+              )}
+              {activeSection === 3 && (
+                <>
+                  <div className="font-bold text-stone-900 mb-1">Practical Best Practices & Labs</div>
+                  Implement secure enterprise paradigms based on high-integrity pipelines, standard patterns, and structured data migrations suitable for production scale.
+                </>
+              )}
+            </div>
