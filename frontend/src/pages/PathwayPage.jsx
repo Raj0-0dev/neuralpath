@@ -1,173 +1,199 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
-import { 
-  CheckCircle2, 
-  BookOpen, 
-  Map, 
-  Layers, 
-  ChevronRight, 
-  Award, 
-  Clock 
+import {
+  Sparkles,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Tag,
+  Compass,
+  ChevronRight,
+  Award,
+  HelpCircle,
+  RefreshCw,
+  AlertTriangle,
+  ArrowLeft,
+  Play,
+  Zap,
+  Terminal,
+  ArrowRight,
+  Code
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function PathwayPage() {
-  const { pathway, completedModules, toggleModuleCompleted } = useApp();
+  const { t, isDark } = useTheme();
+  const {
+    pathway,
+    setPathway,
+    adaptPathwayOnServer,
+    completedModules,
+    toggleModuleCompleted,
 
-  const totalModulesCount = pathway?.phases?.reduce((acc, p) => acc + p.modules.length, 0) || 0;
-  const completedCount = completedModules ? completedModules.size : 0;
-  const percent = totalModulesCount > 0 ? Math.round((completedCount / totalModulesCount) * 100) : 0;
+  } = useApp();
+  const isLoggedIn = true;
+  const navigate = useNavigate();
 
-  const handleToggleModule = async (moduleId, skillName) => {
-    if (toggleModuleCompleted) {
-      await toggleModuleCompleted(moduleId, skillName);
-    }
-  };
+  // Navigation states
+  const [selectedModuleId, setSelectedModuleId] = useState(null);
+  const [activeSection, setActiveSection] = useState(1); // represented by buttons 1, 2, 3
 
-  if (!pathway || !pathway.phases || pathway.phases.length === 0) {
+  // Modals state
+  const [selectedQuiz, setSelectedQuiz] = useState(null);
+  const [quizScore, setQuizScore] = useState(85);
+  const [quizSuccessMsg, setQuizSuccessMsg] = useState(null);
+
+  // Sandbox State
+  const [isSandboxOpen, setIsSandboxOpen] = useState(false);
+  const [sandboxCode, setSandboxCode] = useState("");
+  const [sandboxOutput, setSandboxOutput] = useState("");
+  const [sandboxRunning, setSandboxRunning] = useState(false);
+
+  if (!isLoggedIn) {
     return (
-      <div className="pt-12 md:pt-24 pb-16 px-4 md:px-8 max-w-xl mx-auto flex flex-col items-center justify-center text-center gap-5">
-        <Map size={48} className="text-stone-400 animate-pulse" />
-        <p className="font-sans text-stone-600 font-semibold text-base">
-          No learning roadmap generated yet. Please upload your resume on the start assessment tab to map your pathway.
+      <div className="pt-6 md:pt-20 pb-16 px-4 md:px-8 max-w-xl mx-auto flex flex-col items-center justify-center text-center gap-5 relative">
+        <Compass size={48} className="text-amber-600" />
+        <p className="font-sans text-stone-600 font-medium text-base">
+          please sign-in to access candidate qualifications roadmaps.
         </p>
+        <button
+          onClick={() => navigate("/login")}
+          className="bg-stone-900 text-white font-semibold text-sm px-6 py-3 rounded-full hover:bg-stone-800 transition-all active:scale-95 duration-100 border border-stone-100 shadow-sm"
+        >
+          Sign-In Portal
+        </button>
       </div>
     );
   }
 
-  return (
-    <div className="pt-6 md:pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-8 relative">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 pb-6">
-        <div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Learning Pathway</h1>
-          <p className="text-stone-500 text-sm font-semibold mt-1">
-            Topological competency roadmap targeting: <span className="text-amber-700 font-bold">{pathway.targetRole}</span>
-          </p>
-        </div>
+  if (!pathway) {
+    return (
+      <div className="pt-6 md:pt-20 pb-16 px-4 md:px-8 max-w-xl mx-auto flex flex-col items-center justify-center text-center gap-5 relative">
+        <Compass size={56} className="text-amber-600 animate-pulse" />
+        <h3 className="font-sans text-stone-950 text-2xl font-black lowercase tracking-tight">
+          no onboarding roadmap active
+        </h3>
+        <p className="font-sans text-stone-600 font-medium text-sm text-center max-w-sm leading-relaxed">
+          upload your candidate specifications and trigger topological gap aligned roadmap creation.
+        </p>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate("/upload")}
+          id="navigate-upload-btn"
+          className="bg-stone-900 text-white font-bold text-sm px-8 py-3.5 rounded-full border border-stone-850 hover:bg-stone-800 transition-all duration-100 active:scale-95"
+        >
+          Synthesize Pathway Track
+        </motion.button>
       </div>
+    );
+  }
 
-      {/* Progress Card */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-6 bg-white rounded-[32px] border border-stone-200 shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col sm:flex-row justify-between items-center gap-6"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl flex items-center justify-center shrink-0">
-            <Award size={22} />
-          </div>
-          <div>
-            <h3 className="font-bold text-stone-900 text-base">Overall Pathway Completion</h3>
-            <p className="text-stone-400 text-xs font-semibold">Completed {completedCount} of {totalModulesCount} total learning modules</p>
-          </div>
-        </div>
-        
-        <div className="w-full sm:w-64 flex flex-col items-end gap-1.5">
-          <span className="font-mono text-xs font-bold text-stone-950">{percent}%</span>
-          <div className="w-full h-2.5 bg-stone-150 rounded-full overflow-hidden border border-stone-200">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${percent}%` }}
-              transition={{ duration: 0.5 }}
-              className="h-full bg-stone-900 rounded-full" 
-            />
-          </div>
-        </div>
-      </motion.div>
+  // Create flat list of all modules sequentially
+  const allModules = pathway.phases?.flatMap((phase) =>
+    phase.modules.map((mod) => ({
+      ...mod,
+      phaseTitle: phase.title,
+      phaseColor: phase.color
+    }))
+  ) || [];
 
-      {/* Learning Phases Timeline */}
-      <div className="space-y-8 relative">
-        {pathway.phases.map((phase, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className="space-y-4"
-          >
-            {/* Phase Badge Header */}
-            <h2 className="text-lg font-extrabold text-stone-900 flex items-center gap-3">
-              <span 
-                className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-sm shrink-0" 
-                style={{ backgroundColor: phase.color }} 
-              />
-              <span>{phase.title}</span>
-            </h2>
+  // Determine active inspect module
+  const activeModule =
+    allModules.find((m) => m.id === selectedModuleId) ||
+    allModules.find((m) => !completedModules.has(m.id)) ||
+    allModules[0];
 
-            {/* Modules Grid */}
-            <div className="grid gap-5 md:grid-cols-2">
-              {phase.modules?.map((mod) => {
-                const isCompleted = completedModules ? completedModules.has(mod.id) : false;
+  const activeIndex = allModules.findIndex((m) => m.id === activeModule?.id);
 
-                return (
-                  <div 
-                    key={mod.id} 
-                    className={`border rounded-2xl p-5 bg-white transition-all flex flex-col justify-between group ${
-                      isCompleted 
-                        ? "border-emerald-600/30 shadow-[0_4px_20px_rgba(5,150,105,0.02)]" 
-                        : "border-stone-200 hover:border-stone-400 shadow-sm"
-                    }`}
-                  >
-                    <div>
-                      {/* Tags & Metadata Header */}
-                      <div className="flex justify-between items-center mb-3">
-                        <span className={`text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-md border uppercase ${
-                          mod.type === "Lab" 
-                            ? "bg-stone-100 border-stone-200 text-stone-600" 
-                            : "bg-amber-50 border-amber-200/50 text-amber-900"
-                        }`}>
-                          {mod.type}
-                        </span>
-                        
-                        <div className="flex items-center gap-3 text-stone-400 font-mono text-[10px] font-semibold">
-                          <span className="flex items-center gap-1"><Clock size={11} /> {mod.duration}</span>
-                          <span className="uppercase">{mod.level}</span>
-                        </div>
-                      </div>
+  const handleModuleToggle = async (mod, phaseTitle) => {
+    if (mod.type === "Quiz") {
+      setSelectedQuiz({ ...mod, phaseTitle });
+      setQuizSuccessMsg(null);
+    } else {
+      await toggleModuleCompleted(mod.id, { ...mod, phaseTitle });
+    }
+  };
 
-                      {/* Title & Description */}
-                      <h3 className={`font-bold text-sm tracking-tight mb-1 transition-colors ${
-                        isCompleted ? "text-stone-400 line-through" : "text-stone-855"
-                      }`}>
-                        {mod.title}
-                      </h3>
-                      <p className={`text-xs font-semibold leading-relaxed mb-4 ${
-                        isCompleted ? "text-stone-300" : "text-stone-500"
-                      }`}>
-                        {mod.description}
-                      </p>
-                    </div>
+  const handleQuizSubmit = async () => {
+    if (!selectedQuiz) return;
 
-                    {/* Checkbox Trigger Footer */}
-                    <div className="border-t border-stone-100 pt-3.5 flex justify-between items-center">
-                      <span className="text-[10px] font-mono text-stone-400 font-bold uppercase">{mod.skillName}</span>
-                      
-                      <button
-                        onClick={() => handleToggleModule(mod.id, mod.skillName)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all active:scale-95 cursor-pointer ${
-                          isCompleted
-                            ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                            : "bg-stone-900 hover:bg-stone-800 text-white shadow-sm"
-                        }`}
-                      >
-                        {isCompleted ? (
-                          <>
-                            <CheckCircle2 size={12} className="text-emerald-700" />
-                            <span>Completed</span>
-                          </>
-                        ) : (
-                          <span>Mark Complete</span>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  );
-}
+    await adaptPathwayOnServer(selectedQuiz.id, quizScore);
+
+    await toggleModuleCompleted(selectedQuiz.id, {
+      title: selectedQuiz.title,
+      type: "Quiz",
+      phaseTitle: selectedQuiz.phaseTitle,
+      duration: selectedQuiz.duration
+    });
+
+    setQuizSuccessMsg(
+      quizScore < 70
+        ? `Assessment score reported at ${quizScore}%. Dynamic alignment complete: supplementary remedial learning steps integrated.`
+        : `Assessment authenticated with ${quizScore}%. Credentials validated successfully!`
+    );
+
+    setTimeout(() => {
+      setSelectedQuiz(null);
+    }, 3200);
+  };
+
+  // Switch to next module
+  const handleContinueLesson = async () => {
+    if (!activeModule) return;
+
+    // Toggle current module as completed if not already completed
+    if (!completedModules.has(activeModule.id)) {
+      await toggleModuleCompleted(activeModule.id, {
+        title: activeModule.title,
+        type: activeModule.type,
+        phaseTitle: activeModule.phaseTitle,
+        duration: activeModule.duration
+      });
+    }
+
+    // Advance to next index
+    const nextIndex = activeIndex + 1;
+    if (nextIndex < allModules.length) {
+      setSelectedModuleId(allModules[nextIndex].id);
+      setActiveSection(1);
+    }
+  };
+
+  const handlePreviousModule = () => {
+    const prevIndex = activeIndex - 1;
+    if (prevIndex >= 0) {
+      setSelectedModuleId(allModules[prevIndex].id);
+      setActiveSection(1);
+    }
+  };
+
+  const handleOpenSandbox = () => {
+    // Generate dynamic boilerplate sample code based on the active module title
+    const modTitle = activeModule?.title || "TypeScript Module";
+    let bCode = `// [NeuralPath Native Sandbox Playroom]\n`;
+    if (modTitle.includes("TypeScript")) {
+      bCode += `/**\n * Topic: TypeScript High-Performance Benchmark Compiler Loop\n */\nclass AstBenchmarker {\n  static measureLoopExecution() {\n    const start = performance.now();\n    let sum = 0;\n    // Optimize layout structures\n    for (let i = 0; i < 2000000; i++) {\n      sum += (i % 2 === 0) ? 1 : 0;\n    }\n    return performance.now() - start;\n  }\n}\n\nconsole.log("Analyzing performance layout...");\nconst executionMs = AstBenchmarker.measureLoopExecution().toFixed(4);\nconsole.log(\`[Success] Loop executed in \${executionMs} ms\`);\n`;
+    } else if (modTitle.includes("React") || modTitle.includes("Frontend")) {
+      bCode += `/**\n * Topic: React Component Reconciliation & Fiber Optimizations\n */\nfunction simulateReconciliation() {\n  const virtualTreeSize = 50000;\n  console.log(\`Reconciling virtual render tree with \${virtualTreeSize} interactive fiber items...\`);\n  const start = performance.now();\n  const memoizedArray = Array.from({ length: virtualTreeSize }, (_, i) => \`ComponentNode_\${i}\`);\n  const duration = (performance.now() - start).toFixed(2);\n  console.log(\`React Fiber tree updated synchronously in \${duration}ms\`);\n}\n\nsimulateReconciliation();\n`;
+    } else {
+      bCode += `/**\n * Topic: ${modTitle} Lab Exercise\n */\nfunction runDiagnosticTest() {\n  console.log("Performing dynamic sanity check on compiled module attributes...");\n  const score = Math.round(75 + Math.random() * 25);\n  console.log(\`Integration successful! Internal score verification: \${score}%\`);\n}\n\nrunDiagnosticTest();\n`;
+    }
+    setSandboxCode(bCode);
+    setSandboxOutput("Ready to execute live workspace test script...");
+    setIsSandboxOpen(true);
+  };
+
+  const handleRunSandboxCode = () => {
+    setSandboxRunning(true);
+    setSandboxOutput("Initializing remote sandbox compiler environment...\nStarting AST generation & bundle optimizations...\n");
+    setTimeout(() => {
+      try {
+        // Safe evaluation simulation
+        let customLog = "";
+        const originalConsoleLog = console.log;
+        console.log = (...args) => {
+          customLog += args.join(" ") + "\n";
+        };
