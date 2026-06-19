@@ -396,3 +396,205 @@ export default function PathwayPage() {
                 </>
               )}
             </div>
+ {/* Bottom Actions Row Controls */}
+            <div className="flex items-center justify-between pt-6 border-t border-stone-150">
+              <button
+                onClick={handlePreviousModule}
+                disabled={activeIndex <= 0}
+                className="text-xs font-bold text-stone-500 hover:text-stone-900 disabled:text-stone-300 disabled:hover:text-stone-300 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <ArrowLeft size={14} />
+                <span>Previous Module</span>
+              </button>
+
+              <button
+                onClick={handleContinueLesson}
+                className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-3 rounded-full flex items-center gap-2 shadow-sm transition-all active:scale-95 duration-100 cursor-pointer"
+              >
+                <span>Continue Lesson</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* MODAL 1: ASSESSMENT QUIZ POPUP (Built-in context integration for score submission) */}
+        <AnimatePresence>
+          {selectedQuiz && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-6 z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.98, y: 12 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.98, y: 12 }}
+                className="bg-white border border-stone-200 rounded-[32px] p-8 sm:p-10 w-full max-w-[490px] shadow-[0_24px_70px_rgba(0,0,0,0.12)] relative text-stone-900"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                    <Award size={20} />
+                  </div>
+                  <h3 className="font-sans text-stone-950 text-xl font-bold tracking-tight lowercase">
+                    gatekeeper assessment
+                  </h3>
+                </div>
+                <p className="font-sans text-stone-600 font-medium text-xs leading-relaxed mb-6">
+                  Record candidate performance scorecard metrics for: <span className="text-stone-900 font-bold">{selectedQuiz.title}</span> of phase <span className="text-stone-900 italic font-semibold">{selectedQuiz.phaseTitle}</span>.
+                </p>
+
+                {quizSuccessMsg ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`p-4 rounded-xl border text-xs font-semibold leading-relaxed flex gap-2 ${quizScore < 70
+                      ? "text-amber-800 bg-amber-50 border-amber-200"
+                      : "text-emerald-800 bg-emerald-50 border-emerald-200"
+                      }`}
+                  >
+                    {quizScore < 70 ? (
+                      <AlertTriangle size={16} className="text-amber-600 shrink-0 animate-pulse" />
+                    ) : (
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    )}
+                    <span>{quizSuccessMsg}</span>
+                  </motion.div>
+                ) : (
+                  <div className="flex flex-col gap-6">
+                    <div>
+                      <label className="font-mono text-[10px] text-stone-500 font-bold uppercase tracking-wider block mb-4">
+                        candidate performance score (%):
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="30"
+                          max="100"
+                          value={quizScore}
+                          onChange={(e) => setQuizScore(parseInt(e.target.value))}
+                          className="flex-1 accent-stone-900 cursor-pointer h-1.5 rounded-full bg-stone-100"
+                        />
+                        <span className="font-mono text-xl font-black text-stone-950">
+                          {quizScore}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-stone-600 font-medium bg-stone-50 border border-stone-200/80 p-4 rounded-xl leading-relaxed">
+                      💡 Scoring below <strong className="text-amber-700">70%</strong> will dynamically trigger curriculum schedule path updates.
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <button
+                        onClick={() => setSelectedQuiz(null)}
+                        id="close-quiz-btn"
+                        className="bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs py-3 rounded-xl border border-stone-200 shadow-sm transition-all active:scale-95 duration-100 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleQuizSubmit}
+                        id="submit-quiz-score-btn"
+                        className="bg-stone-900 hover:bg-stone-850 text-white font-bold text-xs py-3 rounded-xl border border-stone-900 shadow-sm transition-all active:scale-95 duration-100 cursor-pointer"
+                      >
+                        Record Score
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* MODAL 2: INTERACTIVE HANDS-ON AST SANDBOX OVERLAY */}
+        <AnimatePresence>
+          {isSandboxOpen && (
+            <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-55">
+              <motion.div
+                initial={{ scale: 0.98, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.98, opacity: 0 }}
+                className="bg-[#18181b] border border-stone-800 rounded-[28px] w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col text-stone-300 font-mono"
+              >
+                {/* Sandbox Header */}
+                <div className="p-4 bg-stone-900/90 border-b border-stone-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="text-xs font-bold text-stone-400 ml-2">NeuralNode Compiler Studio - Sandbox</span>
+                  </div>
+                  <button
+                    onClick={() => setIsSandboxOpen(false)}
+                    className="text-stone-400 hover:text-white transition-colors text-xs font-bold bg-stone-800 px-3 py-1 rounded-md cursor-pointer"
+                  >
+                    Close Playroom
+                  </button>
+                </div>
+
+                {/* Sandbox Body (Split editor and logger) */}
+                <div className="p-6 space-y-4">
+                  <div>
+                    <div className="text-[10px] text-stone-500 uppercase tracking-widest font-black mb-1.5 flex items-center gap-2">
+                      <Code size={12} className="text-amber-500" />
+                      Editable JS/TS Script Playground:
+                    </div>
+                    <textarea
+                      value={sandboxCode}
+                      onChange={(e) => setSandboxCode(e.target.value)}
+                      rows={10}
+                      className="w-full p-4 bg-stone-950 border border-stone-800 rounded-xl text-emerald-400 placeholder:text-stone-600 text-xs font-mono focus:outline-none focus:border-amber-600/50 leading-relaxed resize-none"
+                    />
+                  </div>
+
+                  {/* Sandbox Logger Console Console */}
+                  <div>
+                    <div className="text-[10px] text-stone-500 uppercase tracking-widest font-black mb-1.5">
+                      Console Compiler Output:
+                    </div>
+                    <div className="w-full p-4 bg-stone-950 border border-stone-800 rounded-xl text-xs max-h-40 overflow-y-auto leading-relaxed text-stone-400">
+                      {sandboxOutput.split("\n").map((line, i) => {
+                        const isSystem = line.startsWith("[System") || line.startsWith("[success") || line.startsWith("[Result");
+                        const isErr = line.startsWith("🛑");
+                        const colorClass = isSystem ? "text-amber-400" : isErr ? "text-red-400" : "text-stone-300";
+                        return <div key={i} className={colorClass}>{line}</div>;
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sandbox Footer Buttons */}
+                <div className="p-4 bg-stone-900/55 border-t border-stone-800 flex justify-between items-center">
+                  <span className="text-[10px] text-stone-500">Target Node: {activeModule?.title}</span>
+                  <button
+                    onClick={handleRunSandboxCode}
+                    disabled={sandboxRunning}
+                    className="bg-amber-600 hover:bg-amber-500 disabled:bg-stone-800 disabled:text-stone-500 text-white text-xs font-bold px-5 py-2.5 rounded-full flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
+                  >
+                    {sandboxRunning ? (
+                      <>
+                        <RefreshCw className="animate-spin" size={13} />
+                        <span>Compiling Nodes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Terminal size={13} />
+                        <span>Execute Optimization Script</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+      </div>
+    </div>
+  );
+}
