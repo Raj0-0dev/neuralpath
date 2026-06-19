@@ -2,6 +2,7 @@ import Resume from "../models/Resume.js";
 import EmployeeSkill from "../models/EmployeeSkill.js";
 import User from "../models/User.js";
 import GapAnalysis from "../models/GapAnalysis.js";
+import LearningPath from "../models/LearningPath.js";
 import { extractTextFromPDF } from "../services/pdfService.js";
 import { analyzeResumeText } from "../services/aiService.js";
 import { 
@@ -72,6 +73,9 @@ export const uploadResume = async (req, res, next) => {
       },
       { upsert: true, new: true }
     );
+
+    // Delete old learning path so a new one is generated
+    await LearningPath.deleteOne({ employeeId });
 
     res.status(201).json({
       success: true,

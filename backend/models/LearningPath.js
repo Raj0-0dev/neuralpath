@@ -31,6 +31,13 @@ const moduleSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  videos: [
+    {
+      segment: { type: Number },
+      title: { type: String },
+      videoUrl: { type: String },
+    },
+  ],
 });
 
 const phaseSchema = new mongoose.Schema({

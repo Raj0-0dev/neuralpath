@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import SkillVideo from "../models/SkillVideo.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -175,7 +177,7 @@ export const getOrderedLearningSequence = async (missingSkills) => {
  * @param {string[]} sortedSkills - Topologically sorted skills.
  * @returns {object[]} Array of generated phases matching the schema.
  */
-export const generatePhasesFromSortedSkills = (sortedSkills) => {
+export const generatePhasesFromSortedSkills = async (sortedSkills) => {
   if (!Array.isArray(sortedSkills) || sortedSkills.length === 0) {
     return [];
   }
@@ -204,34 +206,80 @@ export const generatePhasesFromSortedSkills = (sortedSkills) => {
     "Phase 3: Advanced Applications"
   ];
 
-  return phaseSkills.map((skills, idx) => {
-    return {
-      title: titles[idx] || `Phase ${idx + 1}: Technical Integration`,
-      color: colors[idx] || "#4f46e5",
-      modules: skills.map((skill, index) => {
-        const type = index % 2 === 0 ? "Course" : "Lab";
-        const duration = index % 2 === 0 ? "3 hrs" : "2 hrs";
-        const level = idx === 0 ? "Basic" : idx === 1 ? "Intermediate" : "Advanced";
-        const description = type === "Course" 
-          ? `Master essential theories, patterns, and hands-on designs to acquire industry proficiency in ${skill}.`
-          : `Practical workspace sandbox lab with unit tests and challenges targeting ${skill} integration.`;
+  return Promise.all(
+    phaseSkills.map(async (skills, idx) => {
+      const modules = await Promise.all(
+        skills.map(async (skill, index) => {
+          const type = index % 2 === 0 ? "Course" : "Lab";
+          const duration = index % 2 === 0 ? "3 hrs" : "2 hrs";
+          const level = idx === 0 ? "Basic" : idx === 1 ? "Intermediate" : "Advanced";
+          const description = type === "Course" 
+            ? `Master essential theories, patterns, and hands-on designs to acquire industry proficiency in ${skill}.`
+            : `Practical workspace sandbox lab with unit tests and challenges targeting ${skill} integration.`;
 
-        return {
-          id: `mod_${idx}_${index}_${skill.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
-          title: type === "Course" ? `Fundamentals of ${skill}` : `${skill} Engineering Lab`,
-          type,
-          duration,
-          level,
-          description,
-          skillName: skill
-        };
-      })
-    };
-  });
+          // Query matching videos case-insensitively
+          let videos = [];
+          try {
+            // Escape special regex chars
+            const escapedSkill = skill.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+            const videoRecord = await SkillVideo.findOne({
+              skillName: { $regex: new RegExp("^" + escapedSkill + "$", "i") }
+            });
+            if (videoRecord && videoRecord.videos && videoRecord.videos.length > 0) {
+              videos = videoRecord.videos.map(v => ({
+                segment: v.segment,
+                title: v.title,
+                videoUrl: v.videoUrl
+              }));
+            } else {
+              // Fallback/placeholder of 2 videos
+              videos = [
+                {
+                  segment: 1,
+                  title: `Fundamentals of ${skill}`,
+                  videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                },
+                {
+                  segment: 2,
+                  title: `${skill} Practical Application`,
+                  videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
+                }
+              ];
+            }
+          } catch (err) {
+            console.error(`Error querying videos for ${skill}:`, err.message);
+            videos = [
+              {
+                segment: 1,
+                title: `Fundamentals of ${skill}`,
+                videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+              },
+              {
+                segment: 2,
+                title: `${skill} Practical Application`,
+                videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
+              }
+            ];
+          }
+
+          return {
+            id: `mod_${idx}_${index}_${skill.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
+            title: type === "Course" ? `Fundamentals of ${skill}` : `${skill} Engineering Lab`,
+            type,
+            duration,
+            level,
+            description,
+            skillName: skill,
+            videos
+          };
+        })
+      );
+
+      return {
+        title: titles[idx] || `Phase ${idx + 1}: Technical Integration`,
+        color: colors[idx] || "#4f46e5",
+        modules
+      };
+    })
+  );
 };
-
-
-
-
-
-

@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import app from "./app.js";
+import { seedSkillVideos } from "./data/seedVideos.js";
 
 dotenv.config();
 
@@ -14,8 +15,13 @@ if (!MONGODB_URI) {
 
 mongoose
   .connect(MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log("Connected to MongoDB successfully");
+    try {
+      await seedSkillVideos();
+    } catch (seedErr) {
+      console.error("Warning: Seeding failed on startup:", seedErr.message);
+    }
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server successfully listening on port ${PORT}`);
     });
@@ -24,3 +30,4 @@ mongoose
     console.error("Failed to connect to MongoDB:", err.message);
     process.exit(1);
   });
+

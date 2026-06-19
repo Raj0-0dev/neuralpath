@@ -19,7 +19,7 @@ export const generateAndStoreLearningPath = async (employeeId) => {
   const sortedSkills = await getOrderedLearningSequence(gap.missingSkills);
 
   // 3. Generate structured phases and modules
-  const phases = generatePhasesFromSortedSkills(sortedSkills);
+  const phases = await generatePhasesFromSortedSkills(sortedSkills);
 
   // 4. Save/Upsert in database
   const learningPath = await LearningPath.findOneAndUpdate(
