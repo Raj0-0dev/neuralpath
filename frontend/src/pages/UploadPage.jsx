@@ -29,7 +29,7 @@ const PRESETS = [
 ];
 
 export default function UploadPage() {
-  const { profile, setAnalysis, setPathway, analysis, loadGapAnalysis } = useApp();
+  const { profile, setAnalysis, setPathway, analysis, loadGapAnalysis, loadLearningPath } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -111,26 +111,8 @@ export default function UploadPage() {
             gaps: gapData.data.programmatic.missingSkills
           });
 
-          // Generate dynamic phases based on actual missing skills
-          const phases = [
-            {
-              title: "Phase 1: Bridge Core Gaps",
-              color: "#8b5cf6",
-              modules: gapData.data.programmatic.missingSkills.map((skill, index) => ({
-                id: `mod_${index}`,
-                title: `Mastery Course: ${skill}`,
-                type: "Course",
-                duration: "3 hrs",
-                level: "Advanced",
-                description: `Deep-dive study and practical deployment assignments to acquire competency in ${skill}.`
-              }))
-            }
-          ];
-          setPathway({
-            candidateName: profile?.name || "Candidate",
-            targetRole: result.data.targetRole,
-            phases
-          });
+          // Load the actual dynamic learning path (with videos) from the backend
+          await loadLearningPath();
         }
       } catch (gapErr) {
         console.error("Failed to load gap details dynamically:", gapErr);

@@ -51,6 +51,23 @@ export default function PathwayPage() {
   const [sandboxOutput, setSandboxOutput] = useState("");
   const [sandboxRunning, setSandboxRunning] = useState(false);
 
+  const isYouTubeUrl = (url) => {
+    return url && (url.includes("youtube.com") || url.includes("youtu.be"));
+  };
+
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return "";
+    let videoId = "";
+    if (url.includes("youtube.com/watch?v=")) {
+      videoId = url.split("watch?v=")[1]?.split("&")[0];
+    } else if (url.includes("youtube.com/embed/")) {
+      videoId = url.split("embed/")[1]?.split("?")[0];
+    } else if (url.includes("youtu.be/")) {
+      videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    }
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="pt-6 md:pt-20 pb-16 px-4 md:px-8 max-w-xl mx-auto flex flex-col items-center justify-center text-center gap-5 relative">
@@ -107,6 +124,8 @@ export default function PathwayPage() {
     allModules[0];
 
   const activeIndex = allModules.findIndex((m) => m.id === activeModule?.id);
+
+  const activeVideo = activeModule?.videos?.find(v => v.segment === activeSection) || activeModule?.videos?.[0];
 
   const handleModuleToggle = async (mod, phaseTitle) => {
     if (mod.type === "Quiz") {
@@ -350,29 +369,24 @@ export default function PathwayPage() {
             </div>
 
             {/* Elegant Black/Dark Video Player */}
-            <div className="relative overflow-hidden aspect-video bg-[#0c0a09] rounded-3xl group shadow-sm flex flex-col justify-between p-6">
-              <div /> {/* spacing div */}
-
-              {/* Centered Premium Glassy Play Trigger Button */}
-              <button
-                className="w-16 h-16 rounded-full bg-white text-stone-950 flex items-center justify-center shadow-2xl mx-auto hover:scale-105 transition-transform group-hover:bg-amber-50 cursor-pointer"
-                aria-label="Play Lesson Simulation"
-              >
-                <div className="translate-x-0.5">
-                  <Play size={20} className="fill-stone-950 stroke-stone-950 text-stone-950" />
-                </div>
-              </button>
-
-              {/* Bottom video stats bar */}
-              <div className="flex items-center justify-between text-white/90 text-[11px] font-bold font-mono">
-                <span className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
-                  <Clock size={12} className="text-amber-400" />
-                  <span>{activeModule?.duration || "18:42"} Lessons</span>
-                </span>
-                <span className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 uppercase tracking-wider">
-                  Section {activeIndex + 1} of {totalModulesCount}
-                </span>
-              </div>
+            <div className="relative overflow-hidden aspect-video bg-[#0c0a09] rounded-3xl group shadow-sm w-full h-full">
+              {activeVideo?.videoUrl && isYouTubeUrl(activeVideo.videoUrl) ? (
+                <iframe
+                  key={`${activeModule?.id}_${activeSection}_${activeVideo?.videoUrl}`}
+                  src={getYouTubeEmbedUrl(activeVideo.videoUrl)}
+                  title={activeVideo.title}
+                  className="w-full h-full rounded-3xl border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  key={`${activeModule?.id}_${activeSection}_${activeVideo?.videoUrl}`}
+                  src={activeVideo?.videoUrl || ""}
+                  controls
+                  className="w-full h-full object-cover rounded-3xl"
+                />
+              )}
             </div>
 
             {/* Description box of simulated Segment Content */}
