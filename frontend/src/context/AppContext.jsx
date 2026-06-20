@@ -103,7 +103,7 @@ export function AppProvider({ children }) {
         return Promise.resolve();
     };
 
-    const loginUser = async (email, password) => {
+    const loginUser = async (email, password, role) => {
         if (!email || !password) {
             throw new Error("Email and password are required.");
         }
@@ -113,7 +113,7 @@ export function AppProvider({ children }) {
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password, role }),
         });
 
         const data = await res.json();
@@ -191,6 +191,8 @@ export function AppProvider({ children }) {
         localStorage.removeItem("np-mock-user");
         setUser(null);
         setProfile(null);
+        setPathwayState(null);
+        setAnalysisState(null);
         setResumeText("");
         setJdText("");
         setCompletedModules(new Set());
@@ -221,9 +223,12 @@ export function AppProvider({ children }) {
                 if (progressData) {
                     setCompletedModules(new Set(progressData.completedModules || []));
                 }
+            } else {
+                setPathwayState(null);
             }
         } catch (err) {
             console.error("Failed to load learning path:", err);
+            setPathwayState(null);
         }
     };
 
@@ -248,24 +253,110 @@ export function AppProvider({ children }) {
                     overallReadiness: gapData.programmatic.matchPercentage,
                     timeToReadiness: gapData.programmatic.matchPercentage >= 75 ? "1-3 weeks" : "3-6 weeks",
                     extractedSkills: gapData.currentSkills,
-                    gaps: gapData.programmatic.missingSkills
+                    gaps: gapData.programmatic.missingSkills,
+                    skillsWithScores: gapData.skillsWithScores || []
                 });
+            } else {
+                setAnalysisState(null);
             }
         } catch (err) {
             console.error("Failed to load gap analysis on state hydration:", err);
+            setAnalysisState(null);
         }
     };
 
     useEffect(() => {
         if (user) {
-            loadGapAnalysis();
-            loadLearningPath();
+            if (!user.targetRole) {
+                setPathwayState(null);
+                setAnalysisState(null);
+            } else {
+                loadGapAnalysis();
+                loadLearningPath();
+            }
+        } else {
+            setPathwayState(null);
+            setAnalysisState(null);
         }
     }, [user]);
 
-    const toggleModuleCompleted = async (moduleId, skillName) => {
+    useEffect(() => {
+        if (!pathway) {
+            setDailyHours({});
+            return;
+        }
+
+        // 1. Get flat list of all modules
+        const allModules = pathway.phases?.flatMap((phase) => phase.modules) || [];
+        if (allModules.length === 0) {
+            setDailyHours({});
+            return;
+        }
+
+        // 2. Parse dates mapping from localStorage
+        let dateMap = {};
+        try {
+            const stored = localStorage.getItem("np-module-completion-dates");
+            if (stored) {
+                dateMap = JSON.parse(stored);
+            }
+        } catch (e) {
+            console.error("Failed to parse completion dates:", e);
+        }
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        let updated = false;
+
+        // 3. Keep dates only for currently completed modules
+        const nextDateMap = {};
+        completedModules.forEach((modId) => {
+            if (dateMap[modId]) {
+                nextDateMap[modId] = dateMap[modId];
+            } else {
+                nextDateMap[modId] = todayStr;
+                updated = true;
+            }
+        });
+
+        // Check if anything was removed from dateMap
+        if (Object.keys(dateMap).length !== Object.keys(nextDateMap).length) {
+            updated = true;
+        }
+
+        if (updated) {
+            localStorage.setItem("np-module-completion-dates", JSON.stringify(nextDateMap));
+        }
+
+        // 4. Calculate total hours per day
+        const hoursPerDay = {};
+        completedModules.forEach((modId) => {
+            const baseModuleId = modId.split("_").slice(0, -1).join("_") || modId;
+            const matchingMod = allModules.find(m => m.id === modId || m.id === baseModuleId || modId.startsWith(m.id));
+            if (matchingMod) {
+                const totalVids = matchingMod.videos?.length || 1;
+                const totalDuration = parseFloat(matchingMod.duration) || 2;
+                const segmentDuration = totalDuration / totalVids;
+
+                const completionDate = nextDateMap[modId] || todayStr;
+                hoursPerDay[completionDate] = (hoursPerDay[completionDate] || 0) + segmentDuration;
+            }
+        });
+
+        setDailyHours(hoursPerDay);
+    }, [completedModules, pathway]);
+
+    const toggleModuleCompleted = async (moduleId, skillNameArg) => {
         const token = localStorage.getItem("np-mock-user-token");
         if (!token) return;
+
+        let skillName = "";
+        if (typeof skillNameArg === "object" && skillNameArg !== null) {
+            skillName = skillNameArg.title || skillNameArg.name || "Skill";
+        } else if (typeof skillNameArg === "string") {
+            skillName = skillNameArg;
+        } else {
+            skillName = "Skill";
+        }
 
         try {
             const res = await fetch("/api/learning-path/complete", {

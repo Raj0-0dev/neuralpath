@@ -21,7 +21,11 @@ export default function LoginPage() {
             if (profile?.role === "admin") {
                 navigate("/admin", { replace: true });
             } else {
-                navigate("/dashboard", { replace: true });
+                if (!profile?.targetRole) {
+                    navigate("/upload", { replace: true });
+                } else {
+                    navigate("/dashboard", { replace: true });
+                }
             }
         }
     }, [isLoggedIn, profile, authLoading, navigate]);
@@ -50,11 +54,16 @@ export default function LoginPage() {
             setMessage({ text: "secure access authenticated.", isError: false });
 
             const targetUserRole = data?.user?.role || role;
+            const hasTargetRole = !!(data?.user?.targetRole || profile?.targetRole);
             setTimeout(() => {
                 if (targetUserRole === "admin") {
                     navigate("/admin");
                 } else {
-                    navigate("/upload");
+                    if (hasTargetRole) {
+                        navigate("/dashboard");
+                    } else {
+                        navigate("/upload");
+                    }
                 }
             }, 1000);
         } catch (err) {
@@ -72,7 +81,7 @@ export default function LoginPage() {
                 setMessage({ text: "fields required.", isError: true });
                 return;
             }
-            handleAuthResult(signInEmail(email, password));
+            handleAuthResult(signInEmail(email, password, role));
         } else {
             if (!email || !password || !name) {
                 setMessage({ text: "required fields missing.", isError: true });
@@ -140,6 +149,18 @@ export default function LoginPage() {
                                     />
                                 </div>
                             </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Sign In As</label>
+                                <select
+                                    value={role}
+                                    onChange={(e) => setRole(e.target.value)}
+                                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors cursor-pointer"
+                                >
+                                    <option value="employee">Candidate / Employee</option>
+                                    <option value="admin">HR Admin View</option>
+                                </select>
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -190,34 +211,16 @@ export default function LoginPage() {
                             </div>
 
                             {/* Side-by-Side Role Config Fields */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className={`space-y-1.5 ${role === "admin" ? "sm:col-span-2" : "sm:col-span-1"}`}>
-                                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Account Role</label>
-                                    <select
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
-                                        className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors cursor-pointer appearance-none"
-                                    >
-                                        <option value="employee">Candidate View</option>
-                                        <option value="admin">HR Admin View</option>
-                                    </select>
-                                </div>
-
-                                {role === "employee" ? (
-                                    <div className="space-y-1.5 sm:col-span-1">
-                                        <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Target Role</label>
-                                        <div className="relative">
-                                            <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
-                                            <input
-                                                type="text"
-                                                placeholder="e.g. Cloud Architect"
-                                                value={targetRole}
-                                                onChange={(e) => setTargetRole(e.target.value)}
-                                                className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors"
-                                            />
-                                        </div>
-                                    </div>
-                                ) : null}
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Account Role</label>
+                                <select
+                                    value={role}
+                                    onChange={(e) => setRole(e.target.value)}
+                                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors cursor-pointer appearance-none"
+                                >
+                                    <option value="employee">Candidate View</option>
+                                    <option value="admin">HR Admin View</option>
+                                </select>
                             </div>
                         </div>
                     )}

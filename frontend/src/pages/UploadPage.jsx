@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
-import { 
-  Upload, 
-  CheckCircle2, 
-  Loader2, 
-  AlertCircle, 
-  BrainCircuit, 
+import {
+  Upload,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  BrainCircuit,
   ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -37,6 +37,7 @@ export default function UploadPage() {
   const [error, setError] = useState(null);
   const [fileDetails, setFileDetails] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [targetRole, setTargetRole] = useState("Software Engineer");
 
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -64,13 +65,14 @@ export default function UploadPage() {
 
     try {
       const token = localStorage.getItem("np-mock-user-token");
-      
+
       const formData = new FormData();
       formData.append("resume", selectedFile);
+      formData.append("targetRole", targetRole);
 
       const res = await fetch("/api/resumes/upload", {
         method: "POST",
-        headers: { 
+        headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: formData,
@@ -82,7 +84,7 @@ export default function UploadPage() {
       }
 
       const result = await res.json();
-      
+
       // Update global context states with the returned data
       setAnalysis({
         candidateName: profile?.name || "Candidate",
@@ -117,7 +119,7 @@ export default function UploadPage() {
       } catch (gapErr) {
         console.error("Failed to load gap details dynamically:", gapErr);
       }
-      
+
       setStep(2);
     } catch (err) {
       console.error(err);
@@ -130,7 +132,7 @@ export default function UploadPage() {
   const skillsList = analysis?.extractedSkills || [
     "React Enterprise", "TS Interfaces", "Node REST Engines", "PostgreSQL DB", "Docker Containers", "AWS S3/Lambda"
   ];
-  
+
   const gapsList = analysis?.gaps || [
     "Advanced Microservice Orchestration & Istio Mesh",
     "Distributed Consensus Algorithms & Raft Model",
@@ -143,17 +145,15 @@ export default function UploadPage() {
       <div className="flex items-center justify-between mb-12 bg-white px-6 py-4 rounded-full border border-stone-200/80 shadow-sm">
         {[1, 2, 3].map((s) => (
           <div key={s} className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
-              step > s ? "bg-stone-900 border-stone-900 text-white" :
-              step === s ? "bg-stone-900 border-stone-900 text-white" : 
-              "bg-white border-stone-200 text-stone-400"
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${step > s ? "bg-stone-900 border-stone-900 text-white" :
+              step === s ? "bg-stone-900 border-stone-900 text-white" :
+                "bg-white border-stone-200 text-stone-400"
+              }`}>
               {step > s ? <CheckCircle2 size={14} /> : s}
             </div>
             {s < 3 && (
-              <div className={`w-12 sm:w-24 h-0.5 mx-2 rounded-full ${
-                step > s ? "bg-stone-900" : "bg-stone-200"
-              }`} />
+              <div className={`w-12 sm:w-24 h-0.5 mx-2 rounded-full ${step > s ? "bg-stone-900" : "bg-stone-200"
+                }`} />
             )}
           </div>
         ))}
@@ -173,12 +173,27 @@ export default function UploadPage() {
               <p className="text-stone-500 text-sm font-semibold">Drop your updated resume to extract skills and identify onboarding gaps.</p>
             </div>
 
+            <div className="space-y-1.5 text-left">
+              <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Select Target Role</label>
+              <select
+                value={targetRole}
+                onChange={(e) => setTargetRole(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-850 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors cursor-pointer appearance-none"
+              >
+                <option value="Frontend Developer">Frontend Developer</option>
+                <option value="Backend Developer">Backend Developer</option>
+                <option value="Full Stack Developer">Full Stack Developer</option>
+                <option value="Data Scientist">Data Scientist</option>
+                <option value="DevOps Engineer">DevOps Engineer</option>
+                <option value="Software Engineer">Software Engineer</option>
+              </select>
+            </div>
+
             <div className="relative group">
-              <div 
+              <div
                 {...getRootProps()}
-                className={`p-10 border-2 border-dashed rounded-3xl text-center transition-all cursor-pointer ${
-                  fileDetails ? 'bg-amber-50/20 border-amber-600/50' : 'bg-white border-stone-200 hover:border-stone-400 shadow-sm'
-                }`}
+                className={`p-10 border-2 border-dashed rounded-3xl text-center transition-all cursor-pointer ${fileDetails ? 'bg-amber-50/20 border-amber-600/50' : 'bg-white border-stone-200 hover:border-stone-400 shadow-sm'
+                  }`}
               >
                 <input {...getInputProps()} />
                 <div className="w-12 h-12 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
@@ -224,30 +239,45 @@ export default function UploadPage() {
             className="space-y-8"
           >
             <div className="text-center">
-              <h2 className="text-2xl font-black text-stone-900 tracking-tight mb-2">Extracted Experience Map</h2>
-              <p className="text-stone-500 text-sm font-semibold">
+              <h2 className="text-2xl font-black tracking-tight mb-2" style={{ color: t.textH }}>Extracted Experience Map</h2>
+              <p className="text-sm font-semibold" style={{ color: t.textMuted }}>
                 Identified <span className="text-amber-600 font-bold">{skillsList.length} qualified skills</span> and defined gap priorities.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3.5">
               {skillsList.slice(0, 6).map((skill) => (
-                <div key={skill} className="flex items-center gap-2.5 p-4 rounded-xl bg-white border border-stone-200 shadow-sm">
+                <div
+                  key={skill}
+                  className="flex items-center gap-2.5 p-4 rounded-xl border shadow-sm"
+                  style={{ backgroundColor: t.bgCard, borderColor: t.border }}
+                >
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                  <span className="font-bold text-xs text-stone-700">{skill}</span>
+                  <span className="font-bold text-xs" style={{ color: t.textBody }}>{skill}</span>
                 </div>
               ))}
             </div>
 
-            <div className="p-6 rounded-[32px] bg-amber-50/30 border border-amber-200/80">
-              <h3 className="flex items-center gap-2 text-amber-900 font-extrabold text-sm mb-4">
+            <div
+              className="p-6 rounded-[32px] border"
+              style={{
+                backgroundColor: isDark ? "rgba(217,119,6,0.1)" : "rgba(254,243,199,0.2)",
+                borderColor: isDark ? "rgba(217,119,6,0.3)" : "#fde68a"
+              }}
+            >
+              <h3 className="flex items-center gap-2 font-extrabold text-sm mb-4" style={{ color: isDark ? t.textH : "#78350f" }}>
                 <BrainCircuit size={18} />
                 Critical Onboarding Gaps
               </h3>
               <ul className="space-y-3">
                 {gapsList.slice(0, 4).map((gap) => (
-                  <li key={gap} className="flex items-start gap-3 text-xs font-semibold text-stone-600 leading-relaxed">
-                    <span className="w-4 h-4 rounded bg-stone-200 text-stone-700 flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5">!</span>
+                  <li key={gap} className="flex items-start gap-3 text-xs font-semibold leading-relaxed" style={{ color: t.textBody }}>
+                    <span
+                      className="w-4 h-4 rounded flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5"
+                      style={{ backgroundColor: t.bgStep, borderColor: t.border, borderWidth: "1px", color: t.textBody }}
+                    >
+                      !
+                    </span>
                     <span>{gap}</span>
                   </li>
                 ))}
@@ -256,9 +286,15 @@ export default function UploadPage() {
 
             <button
               onClick={() => setStep(3)}
-              className="w-full py-4 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-full shadow-sm transition-all flex items-center justify-center gap-2 text-sm active:scale-98 cursor-pointer"
+              className="w-full py-4 font-bold rounded-full shadow-sm transition-all flex items-center justify-center gap-2 text-sm active:scale-98 cursor-pointer border hover:opacity-90"
+              style={{
+                backgroundColor: isDark ? t.bgCard : "#1c1917",
+                color: isDark ? t.textH : "#ffffff",
+                borderColor: t.border,
+                borderWidth: "1px"
+              }}
             >
-              Generate Tailored Roadmap
+              <span>Generate Tailored Roadmap</span>
               <ArrowRight size={16} />
             </button>
           </motion.div>
@@ -271,31 +307,41 @@ export default function UploadPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center space-y-8"
           >
-            <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto">
-              <CheckCircle2 size={28} className="text-emerald-700" />
+            <div
+              className="w-16 h-16 rounded-full border flex items-center justify-center mx-auto"
+              style={{ backgroundColor: isDark ? "rgba(16,185,129,0.15)" : "#ecfdf5", borderColor: isDark ? "rgba(16,185,129,0.3)" : "#a7f3d0" }}
+            >
+              <CheckCircle2 size={28} className={isDark ? "text-emerald-400" : "text-emerald-700"} />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-stone-900 tracking-tight mb-2">Roadmap Compiled</h2>
-              <p className="text-stone-500 text-sm font-semibold px-6">Your adaptive career path has been structured relative to your goal milestones.</p>
+              <h2 className="text-2xl font-black tracking-tight mb-2" style={{ color: t.textH }}>Roadmap Compiled</h2>
+              <p className="text-sm font-semibold px-6" style={{ color: t.textMuted }}>Your adaptive career path has been structured relative to your goal milestones.</p>
             </div>
 
-            <div className="p-6 bg-white rounded-[32px] border border-stone-200 shadow-sm text-left">
-              <div className="flex justify-between text-[11px] font-bold text-stone-400 mb-2 font-mono uppercase tracking-wider">
+            <div className="p-6 rounded-[32px] border shadow-sm text-left" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+              <div className="flex justify-between text-[11px] font-bold mb-2 font-mono uppercase tracking-wider" style={{ color: t.textMuted }}>
                 <span>PATH_ID: NP_6672</span>
                 <span>INITIAL PROGRESS: 0%</span>
               </div>
-              <div className="h-2.5 bg-stone-100 rounded-full overflow-hidden border border-stone-200">
-                <motion.div 
+              <div className="h-2.5 rounded-full overflow-hidden border" style={{ backgroundColor: t.bgStep, borderColor: t.border }}>
+                <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: "15%" }}
-                  className="h-full bg-stone-900 rounded-full" 
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: isDark ? t.textH : "#1c1917" }}
                 />
               </div>
             </div>
 
             <button
-              onClick={() => navigate("/dashboard")}
-              className="w-full py-4 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-full shadow-md transition-all text-sm cursor-pointer"
+              onClick={() => navigate("/pathwaypage")}
+              className="w-full py-4 font-bold rounded-full shadow-md transition-all text-sm cursor-pointer border hover:opacity-90"
+              style={{
+                backgroundColor: isDark ? t.bgCard : "#1c1917",
+                color: isDark ? t.textH : "#ffffff",
+                borderColor: t.border,
+                borderWidth: "1px"
+              }}
             >
               Enter Learning Path
             </button>

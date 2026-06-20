@@ -13,7 +13,11 @@ export default function HomePage() {
             if (profile?.role === "admin") {
                 navigate("/admin", { replace: true });
             } else {
-                navigate("/dashboard", { replace: true });
+                if (!profile?.targetRole) {
+                    navigate("/upload", { replace: true });
+                } else {
+                    navigate("/dashboard", { replace: true });
+                }
             }
         }
     }, [isLoggedIn, profile, authLoading, navigate]);

@@ -29,7 +29,7 @@ export const generateAndStoreLearningPath = async (employeeId) => {
       orderedSkills: sortedSkills,
       phases,
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   );
 
   return learningPath;

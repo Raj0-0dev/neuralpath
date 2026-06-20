@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  LayoutDashboard, 
-  Map, 
-  User, 
-  LogOut, 
-  Menu, 
-  X, 
-  BrainCircuit, 
-  Rocket, 
+import {
+  LayoutDashboard,
+  Map,
+  User,
+  LogOut,
+  Menu,
+  X,
+  BrainCircuit,
+  Rocket,
   ChevronLeft,
   Settings
 } from 'lucide-react';
@@ -27,15 +27,15 @@ export default function AuthSidebar({ isCollapsed, setIsCollapsed }) {
     navigate('/');
   };
 
-  const navItems = profile?.role === 'admin' 
+  const navItems = profile?.role === 'admin'
     ? [
-        { name: 'HR Admin Panel', path: '/admin', icon: Settings }
-      ]
+      { name: 'HR Admin Panel', path: '/admin', icon: Settings }
+    ]
     : [
-        { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-        { name: 'Start Assessment', path: '/upload', icon: Rocket },
-        { name: 'PathwayPage', path: '/pathwaypage', icon: Map },
-      ];
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { name: 'Start Assessment', path: '/upload', icon: Rocket },
+      { name: 'PathwayPage', path: '/pathwaypage', icon: Map },
+    ];
 
   const sidebarContent = (
     <div className="h-full flex flex-col justify-between py-6 px-4">
@@ -53,11 +53,11 @@ export default function AuthSidebar({ isCollapsed, setIsCollapsed }) {
               Core Learning OS
             </div>
           </div>
-          
+
           {/* Collapse button for desktop */}
           <button
             onClick={() => setIsCollapsed(true)}
-            className="hidden md:flex p-1.5 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-900 transition-colors border border-stone-205 cursor-pointer"
+            className="hidden md:flex p-1.5 rounded-lg hover:bg-stone-100 text-stone-900 font-bold hover:text-stone-900 transition-colors border border-stone-205 cursor-pointer"
             title="Collapse Sidebar"
           >
             <ChevronLeft size={14} />
@@ -74,16 +74,15 @@ export default function AuthSidebar({ isCollapsed, setIsCollapsed }) {
                 key={item.name}
                 to={item.path}
                 onClick={() => setIsMobileOpen(false)}
-                className={`w-full px-4 py-3 rounded-xl text-xs font-bold tracking-tight transition-all flex items-center gap-3.5 border ${
-                  isActive
-                    ? 'bg-stone-900 border-stone-850 text-white shadow-md shadow-stone-950/10'
-                    : 'bg-transparent border-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-100/80'
-                }`}
+                className={`w-full px-4 py-3 rounded-xl text-xs font-bold tracking-tight transition-all flex items-center gap-3.5 border ${isActive
+                  ? 'bg-stone-900 border-stone-850 text-white shadow-md shadow-stone-950/10'
+                  : 'bg-transparent border-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-100/80'
+                  }`}
               >
                 <IconComponent size={16} className={isActive ? 'text-amber-500' : 'text-stone-500'} />
                 <span>{item.name}</span>
                 {isActive && (
-                  <motion.span 
+                  <motion.span
                     layoutId="sidebarActiveIndicator"
                     className="ml-auto w-1 h-3 rounded-full bg-amber-500"
                   />

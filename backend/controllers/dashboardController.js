@@ -3,8 +3,7 @@ import User from "../models/User.js";
 import EmployeeSkill from "../models/EmployeeSkill.js";
 import { 
   getRequiredSkillsForRole, 
-  performProgrammaticAnalysis, 
-  performAIGapAnalysis 
+  performProgrammaticAnalysis
 } from "../services/gapAnalysisService.js";
 
 /**
@@ -31,6 +30,15 @@ export const getDashboardSummary = async (req, res, next) => {
       });
     }
 
+    // Check if employee has uploaded a resume (checked by existence of EmployeeSkill)
+    const employeeSkill = await EmployeeSkill.findOne({ employeeId: userId });
+    if (!employeeSkill) {
+      return res.status(400).json({
+        success: false,
+        message: "No skills profile found. Please upload a resume first."
+      });
+    }
+
     // 2. Fetch the cached GapAnalysis from the database
     let gap = await GapAnalysis.findOne({ employeeId: userId });
 
@@ -43,7 +51,15 @@ export const getDashboardSummary = async (req, res, next) => {
 
       const requiredSkills = await getRequiredSkillsForRole(user.targetRole);
       const programmatic = performProgrammaticAnalysis(currentSkills, requiredSkills);
-      const aiAnalysis = await performAIGapAnalysis(currentSkills, user.targetRole);
+
+      const skillsWithScores = requiredSkills.map(skillName => {
+        const hasSkill = currentSkills.some(s => s.toLowerCase() === skillName.toLowerCase());
+        return {
+          name: skillName,
+          score: hasSkill ? 7 : 0,
+          reason: hasSkill ? "Extracted from skills profile." : "Missing from skills profile."
+        };
+      });
 
       gap = await GapAnalysis.findOneAndUpdate(
         { employeeId: userId },
@@ -51,10 +67,10 @@ export const getDashboardSummary = async (req, res, next) => {
           targetRole: user.targetRole,
           matchingSkills: programmatic.matchingSkills,
           missingSkills: programmatic.missingSkills,
-          matchPercentage: programmatic.matchPercentage,
-          recommendations: aiAnalysis.recommendations
+          skillsWithScores,
+          matchPercentage: programmatic.matchPercentage
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: "after" }
       );
     } else {
       console.log("[Dashboard Controller] Found cached GapAnalysis in database.");
@@ -66,7 +82,7 @@ export const getDashboardSummary = async (req, res, next) => {
       data: {
         matchPercentage: gap.matchPercentage,
         missingSkills: gap.missingSkills,
-        recommendations: gap.recommendations
+        skillsWithScores: gap.skillsWithScores || []
       }
     });
   } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
@@ -19,13 +19,15 @@ import {
   Zap,
   Terminal,
   ArrowRight,
-  Code
+  Code,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function PathwayPage() {
   const { t, isDark } = useTheme();
   const {
+    profile,
     pathway,
     setPathway,
     adaptPathwayOnServer,
@@ -93,7 +95,7 @@ export default function PathwayPage() {
           no onboarding roadmap active
         </h3>
         <p className="font-sans text-stone-600 font-medium text-sm text-center max-w-sm leading-relaxed">
-          upload your candidate specifications and trigger topological gap aligned roadmap creation.
+          please go to the upload page and assess your resume first to activate learning pathway roadmap.
         </p>
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -102,7 +104,7 @@ export default function PathwayPage() {
           id="navigate-upload-btn"
           className="bg-stone-900 text-white font-bold text-sm px-8 py-3.5 rounded-full border border-stone-850 hover:bg-stone-800 transition-all duration-100 active:scale-95"
         >
-          Synthesize Pathway Track
+          Go to Upload Page
         </motion.button>
       </div>
     );
@@ -117,11 +119,34 @@ export default function PathwayPage() {
     }))
   ) || [];
 
+  const isModuleCompleted = (mod) => {
+    if (!mod) return false;
+    const totalVids = mod.videos?.length || 1;
+    for (let s = 1; s <= totalVids; s++) {
+      if (!completedModules.has(`${mod.id}_${s}`)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   // Determine active inspect module
   const activeModule =
     allModules.find((m) => m.id === selectedModuleId) ||
-    allModules.find((m) => !completedModules.has(m.id)) ||
     allModules[0];
+
+  // Set initial selected module on load
+  useEffect(() => {
+    if (selectedModuleId === null && allModules.length > 0) {
+      const firstIncomplete = allModules.find((m) => !isModuleCompleted(m)) || allModules[0];
+      setSelectedModuleId(firstIncomplete.id);
+    }
+  }, [allModules, selectedModuleId, completedModules]);
+
+  // Reset active section when active module changes
+  useEffect(() => {
+    setActiveSection(1);
+  }, [activeModule?.id]);
 
   const activeIndex = allModules.findIndex((m) => m.id === activeModule?.id);
 
@@ -159,25 +184,21 @@ export default function PathwayPage() {
     }, 3200);
   };
 
-  // Switch to next module
-  const handleContinueLesson = async () => {
+  // Switch to next module / video segment
+  const handleContinueLesson = () => {
     if (!activeModule) return;
 
-    // Toggle current module as completed if not already completed
-    if (!completedModules.has(activeModule.id)) {
-      await toggleModuleCompleted(activeModule.id, {
-        title: activeModule.title,
-        type: activeModule.type,
-        phaseTitle: activeModule.phaseTitle,
-        duration: activeModule.duration
-      });
-    }
-
-    // Advance to next index
-    const nextIndex = activeIndex + 1;
-    if (nextIndex < allModules.length) {
-      setSelectedModuleId(allModules[nextIndex].id);
-      setActiveSection(1);
+    const totalVideos = activeModule.videos?.length || 1;
+    if (activeSection < totalVideos) {
+      // Go to next video of the same module
+      setActiveSection((prev) => prev + 1);
+    } else {
+      // Advance to next module
+      const nextIndex = activeIndex + 1;
+      if (nextIndex < allModules.length) {
+        setSelectedModuleId(allModules[nextIndex].id);
+        setActiveSection(1);
+      }
     }
   };
 
@@ -216,7 +237,7 @@ export default function PathwayPage() {
         console.log = (...args) => {
           customLog += args.join(" ") + "\n";
         };
-// Execute code
+        // Execute code
         new Function(sandboxCode)();
 
         console.log = originalConsoleLog;
@@ -230,25 +251,38 @@ export default function PathwayPage() {
   };
 
   const totalModulesCount = allModules.length;
-  const completedModulesCount = allModules.filter((m) => completedModules.has(m.id)).length;
+  const completedModulesCount = allModules.filter((m) => isModuleCompleted(m)).length;
   const pathReadinessProgress =
     totalModulesCount > 0 ? Math.round((completedModulesCount / totalModulesCount) * 100) : 0;
 
+  const isCurrentSegmentDone = activeModule ? completedModules.has(`${activeModule.id}_${activeSection}`) : false;
+  const isLastLessonOfAll = activeIndex >= allModules.length - 1 && activeSection >= (activeModule?.videos?.length || 1);
+  const isNextDisabled = !isCurrentSegmentDone || isLastLessonOfAll;
+
   return (
-    <div className="pt-6 md:pt-14 pb-16 px-4 md:px-8 max-w-7xl mx-auto space-y-8 relative">
+    <div className="pt-2 md:pt-4 pb-8 px-4 md:px-6 max-w-7xl mx-auto space-y-4 relative">
       <div className="relative z-10">
 
         {/* Dynamic Roadtrack Sequential Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
           {/* LEFT COLUMN: CURRICULUM PATH TIMELINE & INTENTIONAL GAP CAPTURE */}
-          <div className="lg:col-span-5 space-y-6">
+          <div className="lg:col-span-5 space-y-4">
 
             {/* CARD 1: CURRICULUM PATH */}
-            <div className="bg-white border border-stone-200/80 rounded-[28px] p-6 shadow-sm">
-              <div className="flex items-center gap-2.5 mb-6 pb-2 border-b border-stone-100">
-                <Compass className="text-stone-700" size={18} />
-                <h2 className="font-sans text-[11px] font-black text-stone-400 uppercase tracking-widest">
+            <div
+              className="border rounded-2xl p-4 sm:p-5 shadow-sm"
+              style={{ backgroundColor: t.bgCard, borderColor: t.border }}
+            >
+              <div
+                className="flex items-center gap-2 mb-3 pb-2 border-b"
+                style={{ borderColor: t.divider }}
+              >
+                <Compass style={{ color: t.textH }} size={18} />
+                <h2
+                  className="font-sans text-[11px] font-black uppercase tracking-widest"
+                  style={{ color: t.textMuted }}
+                >
                   Curriculum Path
                 </h2>
               </div>
@@ -262,20 +296,24 @@ export default function PathwayPage() {
                 />
 
                 {allModules.map((mod, idx) => {
-                  const isDone = completedModules.has(mod.id);
+                  const isDone = isModuleCompleted(mod);
                   const isActive = activeModule?.id === mod.id;
                   const isRemedial = mod.id.includes("remedial_");
+                  const isLocked = idx > 0 && allModules.slice(0, idx).some(m => !isModuleCompleted(m));
 
                   return (
                     <div
                       key={mod.id}
                       onClick={() => {
+                        if (isLocked) return;
                         setSelectedModuleId(mod.id);
                         setActiveSection(1);
                       }}
-                      className={`relative flex items-start gap-5 p-4 rounded-2xl cursor-pointer transition-all duration-200 select-none ${isActive
+                      className={`relative flex items-start gap-5 p-4 rounded-2xl transition-all duration-200 select-none ${isActive
                         ? "bg-amber-50/40 border border-amber-200/60"
-                        : "border border-transparent hover:bg-stone-50/60"
+                        : isLocked
+                          ? "opacity-50 cursor-not-allowed border-transparent"
+                          : "border border-transparent hover:bg-stone-50/60 cursor-pointer"
                         }`}
                     >
                       {/* Left Dot Indicator */}
@@ -290,16 +328,28 @@ export default function PathwayPage() {
                           <div className="w-5 h-5 rounded-full bg-white border-2 border-stone-900 flex items-center justify-center shrink-0">
                             <div className="w-2.5 h-2.5 rounded-full bg-stone-900" />
                           </div>
+                        ) : isLocked ? (
+                          <div
+                            className="w-4 h-4 flex items-center justify-center shrink-0"
+                            style={{ color: t.textMuted }}
+                          >
+                            <Lock size={12} />
+                          </div>
                         ) : (
-                          <div className="w-4 h-4 rounded-full bg-white border border-stone-300 shrink-0" />
+                          <div
+                            className="w-4 h-4 rounded-full border shrink-0"
+                            style={{ backgroundColor: t.bgCard, borderColor: t.borderInput }}
+                          />
                         )}
                       </div>
 
                       {/* Title & Stats */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className={`text-xs font-bold leading-tight tracking-tight ${isActive ? "text-stone-950" : isDone ? "text-stone-400 font-medium" : "text-stone-700"
-                            }`}>
+                          <h4
+                            className="text-xs font-bold leading-tight tracking-tight"
+                            style={{ color: isActive ? t.textH : isDone ? t.textMuted : t.textBody }}
+                          >
                             {mod.title}
                           </h4>
                           {isRemedial && (
@@ -308,7 +358,10 @@ export default function PathwayPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-stone-400 font-semibold mt-1 uppercase tracking-wide">
+                        <p
+                          className="text-[10px] font-bold mt-1 uppercase tracking-wide"
+                          style={{ color: t.textMuted }}
+                        >
                           {mod.duration} • {mod.level || "Intermediate"}
                         </p>
                       </div>
@@ -319,51 +372,78 @@ export default function PathwayPage() {
             </div>
 
             {/* CARD 2: INTELLIGENT GAP FIX */}
-            <div className="bg-white border border-stone-200/80 rounded-[28px] p-6 shadow-sm">
+            <div
+              className="border rounded-2xl p-4 sm:p-5 shadow-sm"
+              style={{ backgroundColor: t.bgCard, borderColor: t.border }}
+            >
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="text-amber-500 fill-amber-500" size={16} />
-                <h3 className="text-[11px] font-black text-stone-400 uppercase tracking-widest">
+                <h3
+                  className="text-[11px] font-black uppercase tracking-widest"
+                  style={{ color: t.textMuted }}
+                >
                   Intelligent Gap Fix
                 </h3>
               </div>
-              <p className="text-xs text-stone-600 font-medium leading-relaxed">
-                Based on gaps identified, modules prioritize <strong className="text-stone-900 font-bold">"{activeModule?.title || "TypeScript Performance"}"</strong> to establish advanced architectural foundations faster.
+              <p
+                className="text-xs font-medium leading-relaxed"
+                style={{ color: t.textBody }}
+              >
+                Based on gaps identified, modules prioritize <strong style={{ color: t.textH }}>"{activeModule?.title || "TypeScript Performance"}"</strong> to establish advanced architectural foundations faster.
               </p>
             </div>
 
           </div>
 
           {/* RIGHT COLUMN: ACTIVE COURSE LESSON PLAYER */}
-          <div className="lg:col-span-7 bg-[#FCFBF9] border border-stone-200/90 rounded-[32px] p-6 sm:p-8 shadow-sm space-y-6">
+          <div
+            className="lg:col-span-7 border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4"
+            style={{ backgroundColor: t.bgCream, borderColor: t.border }}
+          >
 
             {/* Top Chapter Progress Label Bar */}
             <div className="flex items-center justify-between ">
-              <div className="bg-stone-100 text-stone-500 font-mono font-bold text-[9px] uppercase tracking-widest px-3 py-1 rounded">
+              <div
+                className="font-mono font-bold text-[9px] uppercase tracking-widest px-3 py-1 rounded"
+                style={{ backgroundColor: t.bgStep, color: t.textBody }}
+              >
                 Active Chapter
               </div>
               {/* Segment Selection Nodes */}
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3].map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => setActiveSection(num)}
-                    className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${activeSection === num
-                      ? "bg-stone-100 border border-stone-200 text-stone-950 scale-105"
-                      : "text-stone-400 hover:text-stone-600 bg-transparent"
-                      }`}
-                  >
-                    {num}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                {(activeModule?.videos || []).map((vid, idx) => {
+                  const num = idx + 1;
+                  return (
+                    <button
+                      key={vid.segment || num}
+                      onClick={() => setActiveSection(num)}
+                      className={`w-8 h-8 rounded-full text-xs transition-all duration-200 flex items-center justify-center cursor-pointer font-bold ${activeSection === num ? "scale-110 shadow-sm font-black" : ""
+                        }`}
+                      style={{
+                        backgroundColor: activeSection === num ? t.textH : t.bgStep,
+                        borderColor: activeSection === num ? t.textH : t.border,
+                        color: activeSection === num ? t.bgCard : t.textMuted
+                      }}
+                    >
+                      {num}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Title Section */}
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight leading-none mb-2">
+              <h2
+                className="text-2xl sm:text-3xl font-black tracking-tight leading-none mb-2"
+                style={{ color: t.textH }}
+              >
                 {activeModule?.title || "TypeScript Performance"}
               </h2>
-              <p className="text-stone-500 text-xs font-semibold">
+              <p
+                className="text-xs font-semibold"
+                style={{ color: t.textMuted }}
+              >
                 Core Module Type: <span className="text-amber-800 font-bold">{activeModule?.type || "Lesson"}</span> • {activeModule?.duration || "1.8 HRS"}
               </p>
             </div>
@@ -389,45 +469,73 @@ export default function PathwayPage() {
               )}
             </div>
 
-            {/* Description box of simulated Segment Content */}
-            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200/50 text-xs text-stone-600 font-medium leading-relaxed">
-              {activeSection === 1 && (
-                <>
-                  <div className="font-bold text-stone-900 mb-1">Concept Definition & Structures</div>
-                  {activeModule?.description || "High level technical summary mapping core constraints dynamically aligned to corporate workflows."}
-                </>
-              )}
-              {activeSection === 2 && (
-                <>
-                  <div className="font-bold text-stone-900 mb-1">Performance Benchmarks & Profiling</div>
-                  Explore execution stack limitations, dynamic RAM leak mitigations, and performance diagnostic pipelines related to this lesson. We examine optimal execution layers mapped strictly.
-                </>
-              )}
-              {activeSection === 3 && (
-                <>
-                  <div className="font-bold text-stone-900 mb-1">Practical Best Practices & Labs</div>
-                  Implement secure enterprise paradigms based on high-integrity pipelines, standard patterns, and structured data migrations suitable for production scale.
-                </>
-              )}
+            {/* Description box of active video segment */}
+            <div
+              className="p-4 rounded-xl border text-xs leading-relaxed"
+              style={{ backgroundColor: t.bgStep, borderColor: t.border }}
+            >
+              <div
+                className="font-bold mb-1"
+                style={{ color: t.textH }}
+              >
+                {activeVideo?.title || "Video Lesson Segment"}
+              </div>
+              <p style={{ color: t.textBody }}>
+                {activeModule?.description || "High level technical summary mapping core constraints dynamically aligned to corporate workflows."}
+              </p>
             </div>
- {/* Bottom Actions Row Controls */}
-            <div className="flex items-center justify-between pt-6 border-t border-stone-150">
+            <div
+              className="flex items-center justify-between pt-4 border-t"
+              style={{ borderColor: t.divider }}
+            >
               <button
                 onClick={handlePreviousModule}
                 disabled={activeIndex <= 0}
-                className="text-xs font-bold text-stone-500 hover:text-stone-900 disabled:text-stone-300 disabled:hover:text-stone-300 transition-colors flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold disabled:opacity-40 transition-colors flex items-center gap-1 cursor-pointer"
+                style={{ color: activeIndex <= 0 ? t.textFaint : t.textMuted }}
               >
                 <ArrowLeft size={14} />
                 <span>Previous Module</span>
               </button>
 
-              <button
-                onClick={handleContinueLesson}
-                className="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-3 rounded-full flex items-center gap-2 shadow-sm transition-all active:scale-95 duration-100 cursor-pointer"
-              >
-                <span>Continue Lesson</span>
-                <ArrowRight size={14} />
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Complete / Toggle completion button */}
+                <button
+                  onClick={async () => {
+                    await toggleModuleCompleted(`${activeModule.id}_${activeSection}`, {
+                      title: `${activeModule.title} - Video ${activeSection}`,
+                      type: activeModule.type,
+                      phaseTitle: activeModule.phaseTitle,
+                      duration: activeModule.duration
+                    });
+                  }}
+                  className={`px-5 py-3 rounded-full text-xs font-bold flex items-center gap-2 border shadow-sm transition-all active:scale-95 duration-100 cursor-pointer ${isCurrentSegmentDone
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100/50"
+                    : ""
+                    }`}
+                  style={!isCurrentSegmentDone ? {
+                    backgroundColor: t.bgCard,
+                    borderColor: t.border,
+                    color: t.textBody
+                  } : {}}
+                >
+                  <CheckCircle2 size={14} className={isCurrentSegmentDone ? "text-emerald-600" : "text-stone-400"} />
+                  <span>{isCurrentSegmentDone ? "Completed" : "Mark as Completed"}</span>
+                </button>
+
+                {/* Continue button */}
+                <button
+                  onClick={handleContinueLesson}
+                  disabled={isNextDisabled}
+                  className={`font-bold text-xs px-6 py-3 rounded-full flex items-center gap-2 shadow-sm transition-all active:scale-95 duration-100 cursor-pointer ${isNextDisabled
+                    ? "bg-white border border-stone-200 text-stone-300 cursor-not-allowed opacity-50"
+                    : "bg-stone-900 hover:bg-stone-800 text-white"
+                    }`}
+                >
+                  <span>Next Lesson</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
             </div>
 
           </div>

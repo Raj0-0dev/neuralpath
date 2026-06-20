@@ -7,8 +7,7 @@ import { extractTextFromPDF } from "../services/pdfService.js";
 import { analyzeResumeText } from "../services/aiService.js";
 import { 
   getRequiredSkillsForRole, 
-  performProgrammaticAnalysis,
-  performAIGapAnalysis
+  performProgrammaticAnalysis
 } from "../services/gapAnalysisService.js";
 
 export const uploadResume = async (req, res, next) => {
@@ -31,47 +30,60 @@ export const uploadResume = async (req, res, next) => {
 
     await resume.save();
 
-    // Analyze raw text using the AI service to extract skills and target role
-    const aiData = await analyzeResumeText(extractedText);
+    const targetRole = req.body.targetRole || "Software Engineer";
 
-    const targetRole = aiData.targetRole || "Professional";
+    // Resolve required skills for targetRole
+    const requiredSkills = await getRequiredSkillsForRole(targetRole);
+
+    // Analyze raw text using the AI service to extract skills with scores and target role
+    const aiData = await analyzeResumeText(extractedText, requiredSkills);
 
     // Update target role in User model
     await User.findByIdAndUpdate(employeeId, {
       targetRole: targetRole,
     });
 
-    // Resolve required skills for targetRole
-    const requiredSkills = await getRequiredSkillsForRole(targetRole);
+    // Compute dynamic match percentage and split matching/missing lists
+    const matchingSkills = [];
+    const missingSkills = [];
+    let sumOfScores = 0;
 
-    // Compute programmatic match percentage
-    const matchAnalysis = performProgrammaticAnalysis(aiData.skills, requiredSkills);
-    const matchPercentage = matchAnalysis.matchPercentage;
+    aiData.skillsWithScores.forEach(skill => {
+      sumOfScores += skill.score;
+      if (skill.score >= 5) {
+        matchingSkills.push(skill.name);
+      } else {
+        missingSkills.push(skill.name);
+      }
+    });
+
+    const maxPossibleScore = requiredSkills.length * 10;
+    const matchPercentage = maxPossibleScore > 0 
+      ? Math.round((sumOfScores / maxPossibleScore) * 100)
+      : 0;
 
     // Store/Upsert extracted skills and matchPercentage in the EmployeeSkill model
     const employeeSkill = await EmployeeSkill.findOneAndUpdate(
       { employeeId },
       { 
-        skills: aiData.skills,
+        skills: matchingSkills,
+        skillsWithScores: aiData.skillsWithScores,
         matchPercentage: matchPercentage
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
-
-    // Perform full AI gap analysis
-    const aiAnalysis = await performAIGapAnalysis(aiData.skills, targetRole);
 
     // Save/Upsert GapAnalysis results in database
     await GapAnalysis.findOneAndUpdate(
       { employeeId },
       {
         targetRole,
-        matchingSkills: matchAnalysis.matchingSkills,
-        missingSkills: matchAnalysis.missingSkills,
-        matchPercentage: matchPercentage,
-        recommendations: aiAnalysis.recommendations
+        matchingSkills,
+        missingSkills,
+        skillsWithScores: aiData.skillsWithScores,
+        matchPercentage
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     // Delete old learning path so a new one is generated

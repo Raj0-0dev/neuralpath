@@ -478,7 +478,7 @@ export const seedSkillVideos = async () => {
       await SkillVideo.findOneAndUpdate(
         { skillName: seed.skillName },
         seed,
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       );
     }
 

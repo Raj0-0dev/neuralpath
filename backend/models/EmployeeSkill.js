@@ -12,6 +12,13 @@ const employeeSkillSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    skillsWithScores: [
+      {
+        name: { type: String, required: true },
+        score: { type: Number, default: 0 },
+        reason: { type: String, default: "" }
+      }
+    ],
     matchPercentage: {
       type: Number,
       default: 0,

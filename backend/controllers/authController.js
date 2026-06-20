@@ -38,7 +38,7 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -48,6 +48,14 @@ export const login = async (req, res, next) => {
     }
 
     const user = await authenticateUser(email, password);
+
+    if (role && user.role !== role) {
+      return res.status(403).json({
+        success: false,
+        message: `Unauthorized role access. You are registered as an ${user.role}, not an ${role}.`,
+      });
+    }
+
     const token = generateToken(user);
 
     res.json({

@@ -3,8 +3,7 @@ import EmployeeSkill from "../models/EmployeeSkill.js";
 import GapAnalysis from "../models/GapAnalysis.js";
 import { 
   getRequiredSkillsForRole, 
-  performProgrammaticAnalysis, 
-  performAIGapAnalysis 
+  performProgrammaticAnalysis
 } from "../services/gapAnalysisService.js";
 
 /**
@@ -34,9 +33,15 @@ export const getUserGapAnalysis = async (req, res, next) => {
       });
     }
 
-    // 3. Fetch employee skills (default to empty array if no record exists)
+    // 3. Fetch employee skills (require it to exist)
     const employeeSkill = await EmployeeSkill.findOne({ employeeId: userId });
-    const currentSkills = employeeSkill ? employeeSkill.skills : [];
+    if (!employeeSkill) {
+      return res.status(400).json({
+        success: false,
+        message: "No skills profile found. Please upload a resume first."
+      });
+    }
+    const currentSkills = employeeSkill.skills;
 
     // If a saved gap analysis exists AND matches current targetRole, return it
     if (savedGap && savedGap.targetRole === user.targetRole) {
@@ -49,6 +54,7 @@ export const getUserGapAnalysis = async (req, res, next) => {
           targetRole: savedGap.targetRole,
           currentSkills,
           requiredSkills: await getRequiredSkillsForRole(user.targetRole),
+          skillsWithScores: savedGap.skillsWithScores || [],
           programmatic: {
             matchingSkills: savedGap.matchingSkills,
             missingSkills: savedGap.missingSkills,
@@ -57,8 +63,7 @@ export const getUserGapAnalysis = async (req, res, next) => {
           aiAnalysis: {
             matchPercentage: savedGap.matchPercentage,
             matchingSkills: savedGap.matchingSkills,
-            missingSkills: savedGap.missingSkills,
-            recommendations: savedGap.recommendations
+            missingSkills: savedGap.missingSkills
           }
         }
       });
@@ -72,20 +77,26 @@ export const getUserGapAnalysis = async (req, res, next) => {
     // 5. Perform programmatic set-comparison
     const programmatic = performProgrammaticAnalysis(currentSkills, requiredSkills);
 
-    // 6. Perform AI suitability assessment
-    const aiAnalysis = await performAIGapAnalysis(currentSkills, user.targetRole);
-
     // 7. Store/Persist results in database
+    const skillsWithScores = requiredSkills.map(skillName => {
+      const hasSkill = currentSkills.some(s => s.toLowerCase() === skillName.toLowerCase());
+      return {
+        name: skillName,
+        score: hasSkill ? 7 : 0,
+        reason: hasSkill ? "Extracted from skills profile." : "Missing from skills profile."
+      };
+    });
+
     const newGap = await GapAnalysis.findOneAndUpdate(
       { employeeId: userId },
       {
         targetRole: user.targetRole,
         matchingSkills: programmatic.matchingSkills,
         missingSkills: programmatic.missingSkills,
-        matchPercentage: programmatic.matchPercentage,
-        recommendations: aiAnalysis.recommendations
+        skillsWithScores,
+        matchPercentage: programmatic.matchPercentage
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     res.status(200).json({
@@ -96,8 +107,13 @@ export const getUserGapAnalysis = async (req, res, next) => {
         targetRole: newGap.targetRole,
         currentSkills,
         requiredSkills,
+        skillsWithScores,
         programmatic,
-        aiAnalysis
+        aiAnalysis: {
+          matchPercentage: programmatic.matchPercentage,
+          matchingSkills: programmatic.matchingSkills,
+          missingSkills: programmatic.missingSkills
+        }
       }
     });
   } catch (error) {
@@ -128,8 +144,14 @@ export const getCustomGapAnalysis = async (req, res, next) => {
     // 2. Perform programmatic comparison
     const programmatic = performProgrammaticAnalysis(currentSkills, requiredSkills);
 
-    // 3. Perform AI assessment
-    const aiAnalysis = await performAIGapAnalysis(currentSkills, targetRole);
+    const skillsWithScores = requiredSkills.map(skillName => {
+      const hasSkill = currentSkills.some(s => s.toLowerCase() === skillName.toLowerCase());
+      return {
+        name: skillName,
+        score: hasSkill ? 7 : 0,
+        reason: hasSkill ? "Indicated in custom skills list." : "Not in custom skills list."
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -138,8 +160,13 @@ export const getCustomGapAnalysis = async (req, res, next) => {
         targetRole: targetRole.trim(),
         currentSkills,
         requiredSkills,
+        skillsWithScores,
         programmatic,
-        aiAnalysis
+        aiAnalysis: {
+          matchPercentage: programmatic.matchPercentage,
+          matchingSkills: programmatic.matchingSkills,
+          missingSkills: programmatic.missingSkills
+        }
       }
     });
   } catch (error) {

@@ -31,9 +31,9 @@ function AppContent() {
       {!isAuthRoute && <VisitorHeader />}
 
       {isAuthRoute && (
-        <AuthSidebar 
-          isCollapsed={isSidebarCollapsed} 
-          setIsCollapsed={setIsSidebarCollapsed} 
+        <AuthSidebar
+          isCollapsed={isSidebarCollapsed}
+          setIsCollapsed={setIsSidebarCollapsed}
         />
       )}
 

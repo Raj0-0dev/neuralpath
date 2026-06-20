@@ -1,4 +1,4 @@
-import { generateRequiredSkillsForRole, analyzeGapWithAI } from "./aiService.js";
+import Role from "../models/Role.js";
 
 export const STANDARD_ROLE_SKILLS = {
   "Frontend Developer": ["React", "JavaScript", "HTML", "CSS", "TypeScript", "Git", "State Management", "REST API"],
@@ -54,6 +54,20 @@ export const getRequiredSkillsForRole = async (role) => {
   if (!role || typeof role !== "string") return [];
 
   const trimmedRole = role.trim();
+
+  // 1. Try to find a custom role in the database first
+  try {
+    const customRole = await Role.findOne({
+      title: { $regex: new RegExp(`^${trimmedRole.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, "i") }
+    });
+    if (customRole && Array.isArray(customRole.requiredSkills) && customRole.requiredSkills.length > 0) {
+      return customRole.requiredSkills;
+    }
+  } catch (err) {
+    console.error("Error looking up custom role in database:", err);
+  }
+
+  // 2. Check standard roles map
   const roleKeys = Object.keys(STANDARD_ROLE_SKILLS);
   const matchedKey = roleKeys.find(key => key.toLowerCase() === trimmedRole.toLowerCase());
 
@@ -61,26 +75,21 @@ export const getRequiredSkillsForRole = async (role) => {
     return STANDARD_ROLE_SKILLS[matchedKey];
   }
 
-  // Fallback to AI generation for custom role titles
-  try {
-    return await generateRequiredSkillsForRole(trimmedRole);
-  } catch (error) {
-    console.error(`[Gap Analysis Service] Error resolving role skills with AI: ${error.message}`);
-    // Default fallback array
-    return ["Problem Solving", "Communication", "Collaboration"];
+  // Map custom roles locally to standard templates to guarantee exactly 1 LLM call is made
+  const roleLower = trimmedRole.toLowerCase();
+  if (roleLower.includes("front")) {
+    return STANDARD_ROLE_SKILLS["Frontend Developer"];
+  } else if (roleLower.includes("back")) {
+    return STANDARD_ROLE_SKILLS["Backend Developer"];
+  } else if (roleLower.includes("full") || roleLower.includes("stack")) {
+    return STANDARD_ROLE_SKILLS["Full Stack Developer"];
+  } else if (roleLower.includes("data") || roleLower.includes("ml") || roleLower.includes("machine")) {
+    return STANDARD_ROLE_SKILLS["Data Scientist"];
+  } else if (roleLower.includes("devops") || roleLower.includes("cloud") || roleLower.includes("infra") || roleLower.includes("sre")) {
+    return STANDARD_ROLE_SKILLS["DevOps Engineer"];
+  } else {
+    return STANDARD_ROLE_SKILLS["Software Engineer"];
   }
 };
 
-/**
- * Performs a full AI-driven gap analysis comparing candidate skills with the target role requirements.
- * 
- * @param {string[]} employeeSkills - Current candidate skills.
- * @param {string} targetRole - Target role.
- * @returns {Promise<object>} Complete suitability and recommendation report.
- */
-export const performAIGapAnalysis = async (employeeSkills = [], targetRole) => {
-  if (!targetRole) {
-    throw new Error("Target role is required for gap analysis.");
-  }
-  return await analyzeGapWithAI(employeeSkills, targetRole);
-};
+

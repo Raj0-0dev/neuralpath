@@ -2,29 +2,29 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
-import { 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
-  Radar, 
-  AreaChart, 
-  Area, 
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   Cell,
   Legend,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from "recharts";
-import { 
-  TrendingUp, 
-  Clock, 
-  Award, 
-  BookOpen, 
-  ChevronRight, 
+import {
+  TrendingUp,
+  Clock,
+  Award,
+  BookOpen,
+  ChevronRight,
   Plus,
   Compass,
   Brain,
@@ -107,6 +107,26 @@ export default function DashboardPage() {
     );
   }
 
+  if (!analysis) {
+    return (
+      <div className="pt-6 md:pt-20 pb-16 px-4 md:px-8 max-w-xl mx-auto flex flex-col items-center justify-center text-center gap-5 relative">
+        <Compass size={48} className="text-amber-600 animate-pulse" />
+        <h3 className="font-sans text-stone-950 text-2xl font-black lowercase tracking-tight">
+          no assessment data active
+        </h3>
+        <p className="font-sans text-stone-600 font-medium text-sm text-center max-w-sm leading-relaxed">
+          please go to the upload page and assess your resume first to activate candidate analytics dashboard.
+        </p>
+        <button
+          onClick={() => navigate("/upload")}
+          className="bg-stone-900 text-white font-semibold text-sm px-6 py-3 rounded-full hover:bg-stone-850 transition-all active:scale-95 duration-100 border border-stone-100 shadow-sm cursor-pointer"
+        >
+          Go to Upload Page
+        </button>
+      </div>
+    );
+  }
+
   // Format Dynamic 7-day Hours data
   const formatDailyHoursData = () => {
     const data = [];
@@ -127,95 +147,92 @@ export default function DashboardPage() {
   const totalHoursTally = Object.values(dailyHours).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
 
   const totalModulesCount = pathway?.phases.reduce((acc, p) => acc + p.modules.length, 0) || 0;
-  const completedModulesCount = completedModules.size;
+  const allModulesList = pathway?.phases?.flatMap((p) => p.modules) || [];
+  const completedModulesCount = allModulesList.filter((mod) => {
+    const totalVids = mod.videos?.length || 1;
+    for (let s = 1; s <= totalVids; s++) {
+      if (!completedModules.has(`${mod.id}_${s}`)) {
+        return false;
+      }
+    }
+    return true;
+  }).length;
   const calcCompetency = totalModulesCount > 0 ? Math.round((completedModulesCount / totalModulesCount) * 100) : 0;
 
-  const competencyVal = (dashboardData && typeof dashboardData.matchPercentage === "number")
-    ? dashboardData.matchPercentage
-    : calcCompetency;
-
-  // Next steps or recommended modules (modules that are not completed yet)
-  const pendingModules = [];
-  if (pathway?.phases) {
-    for (const phase of pathway.phases) {
-      for (const mod of phase.modules) {
-        if (!completedModules.has(mod.id)) {
-          pendingModules.push({
-            tag: mod.type || "Module",
-            title: mod.title,
-            duration: mod.duration || "30 mins",
-            difficulty: mod.level || "Intermediate",
-          });
+  // Extract completed skill names in real-time
+  const completedSkillNames = new Set(
+    pathway?.phases?.flatMap(phase => phase.modules)
+      .filter(mod => {
+        const totalVids = mod.videos?.length || 1;
+        for (let s = 1; s <= totalVids; s++) {
+          if (!completedModules.has(`${mod.id}_${s}`)) {
+            return false;
+          }
         }
-      }
-    }
-  }
+        return true;
+      })
+      .map(mod => mod.skillName?.toLowerCase())
+      .filter(Boolean) || []
+  );
 
-  // Fallback next steps if list is empty
-  let recommendedSteps = [];
-  if (dashboardData && Array.isArray(dashboardData.recommendations) && dashboardData.recommendations.length > 0) {
-    recommendedSteps = dashboardData.recommendations.map(rec => {
-      let tag = "Bridge Module";
-      let title = rec;
-      const match = rec.match(/^Learn\s+(.+?)\s+through/i);
-      if (match) {
-        tag = match[1];
-      }
+  const targetSkillsList = (dashboardData && Array.isArray(dashboardData.skillsWithScores))
+    ? dashboardData.skillsWithScores
+    : (analysis?.skillsWithScores || []);
+
+  const totalRequiredSkillsCount = targetSkillsList.length || 1;
+  const currentMatchingSkillsCount = targetSkillsList.filter(skill => {
+    const isCompleted = completedSkillNames.has(skill.name.toLowerCase());
+    return skill.score > 0 || isCompleted;
+  }).length;
+
+  const competencyVal = Math.round((currentMatchingSkillsCount / totalRequiredSkillsCount) * 100);
+
+  const skillChartData = targetSkillsList.length > 0
+    ? targetSkillsList.map(skill => {
+      const isCompleted = completedSkillNames.has(skill.name.toLowerCase());
+      const score = isCompleted ? Math.max(skill.score, 8) : skill.score;
       return {
-        tag,
-        title,
-        duration: "Self-Paced",
-        difficulty: "Recommended"
+        subject: skill.name,
+        A: score * 15,
+        fullMark: 150
       };
-    });
-  } else if (pendingModules.length > 0) {
-    recommendedSteps = pendingModules.slice(0, 3);
-  } else {
-    recommendedSteps = [
-      { tag: "Database Partitioning", title: "Mastering Redis & Memcached Ring Topologies", duration: "45 mins", difficulty: "Intermediate" },
-      { tag: "DevSecOps", title: "Securing Pipelines with CloudKMS & Kubernetes Secrets", duration: "1.2 hours", difficulty: "Advanced" },
-      { tag: "Architecture", title: "Complex Distributed Event Stream Consensus & Raft Protocols", duration: "50 mins", difficulty: "Core Mastery" },
-    ];
-  }
-
-  const skillChartData = SKILL_DATA.map(skill => {
-    if (dashboardData && Array.isArray(dashboardData.missingSkills)) {
-      const isMissing = dashboardData.missingSkills.some(ms => 
-        ms.toLowerCase().includes(skill.subject.toLowerCase()) || 
-        skill.subject.toLowerCase().includes(ms.toLowerCase())
-      );
-      if (isMissing) {
-        return { ...skill, A: Math.round(skill.fullMark * 0.4) };
-      } else {
-        return { ...skill, A: Math.round(skill.fullMark * 0.85) };
-      }
-    }
-    return skill;
-  });
+    })
+    : SKILL_DATA;
 
   // Dynamic status extraction logic for the new visual elements
-  const missingSkillsList = (dashboardData && Array.isArray(dashboardData.missingSkills))
+  const rawMissingSkills = (dashboardData && Array.isArray(dashboardData.missingSkills))
     ? dashboardData.missingSkills
     : (analysis?.gaps || []);
+
+  const missingSkillsList = rawMissingSkills.filter(skillName =>
+    !completedSkillNames.has(skillName.toLowerCase())
+  );
 
   const currentSkillsList = analysis?.extractedSkills || [
     "React", "Node.js", "TypeScript", "JavaScript", "HTML5", "CSS3"
   ];
 
-  // Dynamically extract matching skills by filtering out gaps
-  const matchingSkillsList = currentSkillsList.filter(skill => 
-    !missingSkillsList.some(ms => 
-      ms.toLowerCase().includes(skill.toLowerCase()) || 
+  // Original matching skills (current skills not in gaps)
+  const initialMatchingSkillsList = currentSkillsList.filter(skill =>
+    !rawMissingSkills.some(ms =>
+      ms.toLowerCase().includes(skill.toLowerCase()) ||
       skill.toLowerCase().includes(ms.toLowerCase())
     )
   );
 
+  // Dynamically include newly completed skills from pathway in matches
+  const newlyCompletedSkillsList = targetSkillsList
+    .filter(skill => completedSkillNames.has(skill.name.toLowerCase()))
+    .map(skill => skill.name);
+
+  const matchingSkillsList = [...new Set([...initialMatchingSkillsList, ...newlyCompletedSkillsList])];
+
   const missingCount = missingSkillsList.length;
-  const skillsCount = currentSkillsList.length;
+  const skillsCount = matchingSkillsList.length;
 
   const readinessEstimate = competencyVal >= 85 ? "Optimal Fit" :
-                            competencyVal >= 70 ? "Lead Ready" :
-                            competencyVal >= 50 ? "Adapting" : "Gap Alert";
+    competencyVal >= 70 ? "Lead Ready" :
+      competencyVal >= 50 ? "Adapting" : "Gap Alert";
 
   // Target Role Alignment pipeline steps
   const pipelineSteps = [
@@ -228,23 +245,39 @@ export default function DashboardPage() {
 
   // Dynamic skill readiness data for the bar chart comparison
   const barChartData = (() => {
-    if (matchingSkillsList.length > 0 || missingSkillsList.length > 0) {
-      const list = [];
-      matchingSkillsList.forEach(skill => {
-        list.push({ name: skill, readiness: 95, status: "Mastered" });
-      });
-      missingSkillsList.forEach(skill => {
-        list.push({ name: skill, readiness: 35, status: "Gap Skill" });
-      });
-      return list.slice(0, 8); // limit top 8 for readability
+    const sourceList = (dashboardData && Array.isArray(dashboardData.skillsWithScores) && dashboardData.skillsWithScores.length > 0)
+      ? dashboardData.skillsWithScores
+      : (analysis && Array.isArray(analysis.skillsWithScores) && analysis.skillsWithScores.length > 0)
+        ? analysis.skillsWithScores
+        : null;
+
+    if (sourceList) {
+      return sourceList.map(skill => {
+        const isCompleted = completedSkillNames.has(skill.name.toLowerCase());
+        const score = isCompleted ? Math.max(skill.score, 8) : skill.score;
+        const readiness = score * 10;
+        let status = "Gap Skill";
+        if (score >= 8) {
+          status = "Mastered";
+        } else if (score > 0) {
+          status = "In Progress";
+        }
+        return {
+          name: skill.name,
+          readiness,
+          status,
+          reason: isCompleted ? "Successfully completed via learning pathway!" : skill.reason
+        };
+      }).sort((a, b) => b.readiness - a.readiness).slice(0, 8);
     }
+
     return [
-      { name: "React", readiness: 95, status: "Mastered" },
-      { name: "TypeScript", readiness: 90, status: "Mastered" },
-      { name: "Node.js", readiness: 80, status: "Mastered" },
-      { name: "System Design", readiness: 55, status: "Gap Skill" },
-      { name: "Cloud Native", readiness: 40, status: "Gap Skill" },
-      { name: "GraphQL", readiness: 30, status: "Gap Skill" },
+      { name: "React", readiness: 95, status: "Mastered", reason: "Demonstrated production React usage" },
+      { name: "TypeScript", readiness: 90, status: "Mastered", reason: "Advanced type typing" },
+      { name: "Node.js", readiness: 80, status: "Mastered", reason: "Backend server experience" },
+      { name: "System Design", readiness: 55, status: "In Progress", reason: "Minor scaling projects" },
+      { name: "Cloud Native", readiness: 40, status: "In Progress", reason: "Basic container exposure" },
+      { name: "GraphQL", readiness: 0, status: "Gap Skill", reason: "No GraphQL evidence" },
     ];
   })();
 
@@ -291,7 +324,7 @@ export default function DashboardPage() {
               className="p-6 rounded-2xl bg-white border border-stone-200 shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col justify-between"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-stone-400 text-xs font-bold uppercase tracking-wider">{stat.label}</span>
+                <span className="text-stone-650 text-xs font-bold uppercase tracking-wider">{stat.label}</span>
                 <div className={`p-1.5 rounded-lg ${stat.bg} ${stat.color}`}>
                   <IconComponent size={16} />
                 </div>
@@ -303,14 +336,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Target Role Alignment Pipeline Stepper Status Section */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         className="p-6 rounded-[32px] bg-white border border-stone-200"
       >
         <div className="mb-6">
-          <h3 className="text-sm font-bold uppercase text-stone-400 tracking-wider">Target Role Alignment Pipeline</h3>
-          <p className="text-stone-500 text-xs font-semibold">Real-time status tracking of candidate qualification mapping stages</p>
+          <h3 className="text-sm font-bold uppercase text-stone-650 tracking-wider">Target Role Alignment Pipeline</h3>
+          <p className="text-stone-700 text-xs font-semibold">Real-time status tracking of candidate qualification mapping stages</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative">
@@ -321,25 +354,24 @@ export default function DashboardPage() {
               <div key={idx} className="flex flex-col items-center md:items-start text-center md:text-left relative group">
                 {idx < 4 && (
                   <div className="hidden md:block absolute top-4 left-10 w-full h-[2px] bg-stone-100 z-0">
-                    <div 
-                      className="h-full bg-stone-900 transition-all duration-500" 
+                    <div
+                      className="h-full bg-emerald-600 transition-all duration-500"
                       style={{ width: isDone ? "100%" : "0%" }}
                     />
                   </div>
                 )}
-                
+
                 <div className="relative z-10 flex flex-col items-center md:items-start">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
-                    isDone ? "bg-stone-900 border-stone-900 text-white" :
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${isDone ? "bg-emerald-600 border-emerald-600 text-white" :
                     isActive ? "bg-amber-600 border-amber-600 text-white animate-pulse" :
-                    "bg-white border-stone-200 text-stone-400"
-                  }`}>
+                      "bg-white border-stone-300 text-stone-650"
+                    }`}>
                     {isDone ? <CheckCircle2 size={12} /> : idx + 1}
                   </div>
-                  <h4 className={`text-xs font-extrabold uppercase mt-3 tracking-wider ${isDone ? "text-stone-900" : isActive ? "text-amber-600 animate-pulse" : "text-stone-400"}`}>
+                  <h4 className={`text-xs font-extrabold uppercase mt-3 tracking-wider ${isDone ? "text-stone-900" : isActive ? "text-amber-600 animate-pulse" : "text-stone-600"}`}>
                     {step.label}
                   </h4>
-                  <p className="text-[11px] text-stone-500 font-semibold mt-1 leading-normal max-w-[150px]">
+                  <p className="text-[11px] text-stone-700 font-semibold mt-1 leading-normal max-w-[150px]">
                     {step.description}
                   </p>
                 </div>
@@ -354,8 +386,8 @@ export default function DashboardPage() {
         {/* Radar Competencies */}
         <div className="p-6 rounded-[32px] bg-white border border-stone-200">
           <div className="mb-6">
-            <h3 className="text-sm font-bold uppercase text-stone-400 tracking-wider">Estimated Core Skill Strengths</h3>
-            <p className="text-stone-500 text-xs font-semibold">Granular coverage based on parsed experience profile</p>
+            <h3 className="text-sm font-bold uppercase text-stone-655 tracking-wider">Estimated Core Skill Strengths</h3>
+            <p className="text-stone-700 text-xs font-semibold">Granular coverage based on parsed experience profile</p>
           </div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -377,8 +409,8 @@ export default function DashboardPage() {
         {/* Learning Velocity Area Chart */}
         <div className="p-6 rounded-[32px] bg-white border border-stone-200">
           <div className="mb-6">
-            <h3 className="text-sm font-bold uppercase text-stone-400 tracking-wider">Weekly Learning Velocity</h3>
-            <p className="text-stone-500 text-xs font-semibold">Onboarding activity tracked and mapped automatically from study milestones</p>
+            <h3 className="text-sm font-bold uppercase text-stone-655 tracking-wider">Weekly Learning Velocity</h3>
+            <p className="text-stone-700 text-xs font-semibold">Onboarding activity tracked and mapped automatically from study milestones</p>
           </div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -403,13 +435,13 @@ export default function DashboardPage() {
                   }}
                   itemStyle={{ color: "#1c1917" }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="progress" 
-                  stroke="#1c1917" 
-                  fillOpacity={1} 
-                  fill="url(#colorProgress)" 
-                  strokeWidth={2.5} 
+                <Area
+                  type="monotone"
+                  dataKey="progress"
+                  stroke="#1c1917"
+                  fillOpacity={1}
+                  fill="url(#colorProgress)"
+                  strokeWidth={2.5}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -418,7 +450,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Dynamic Skill Readiness Bar Chart */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         className="p-6 rounded-[32px] bg-white border border-stone-200"
@@ -433,7 +465,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-amber-500"></span> In Progress</span>
           </div>
         </div>
-        
+
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -456,60 +488,27 @@ export default function DashboardPage() {
                 }}
               />
               <Bar dataKey="readiness" radius={[0, 8, 8, 0]} barSize={14}>
-                {barChartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.status === "Mastered" ? "#059669" : "#d97706"} 
-                  />
-                ))}
+                {barChartData.map((entry, index) => {
+                  let fillColor = "#ef4444"; // Red for Gap Skill
+                  if (entry.status === "Mastered") {
+                    fillColor = "#059669"; // Green
+                  } else if (entry.status === "In Progress") {
+                    fillColor = "#d97706"; // Amber
+                  }
+                  return (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={fillColor}
+                    />
+                  );
+                })}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
       </motion.div>
 
-      {/* Suggested next steps list identical design */}
-      <div className="p-6 rounded-[32px] bg-white border border-stone-200">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h3 className="text-sm font-bold uppercase text-stone-400 tracking-wider">Recommended Bridge Modules</h3>
-            <p className="text-stone-500 text-xs font-semibold">Priority roadmap actions selected to target identified skill weaknesses</p>
-          </div>
-          <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest bg-stone-50 border border-stone-100 px-2.5 py-1 rounded-full">
-            AI Recommendations
-          </span>
-        </div>
 
-        <div className="space-y-3">
-          {recommendedSteps.map((task, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between p-4 rounded-2xl bg-stone-50 hover:bg-white border border-stone-200/50 hover:border-stone-400 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-1.5 h-10 bg-stone-900 rounded-full" />
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-tight text-amber-800 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md">
-                      {task.tag}
-                    </span>
-                    <span className="text-[11px] font-semibold text-stone-400">{task.difficulty}</span>
-                  </div>
-                  <h4 className="font-bold text-stone-800 text-sm">{task.title}</h4>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <span className="hidden sm:block text-xs font-bold text-stone-400 font-mono">{task.duration}</span>
-                <ChevronRight 
-                  size={16} 
-                  className="text-stone-400 group-hover:text-stone-900 group-hover:translate-x-0.5 transition-all" 
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

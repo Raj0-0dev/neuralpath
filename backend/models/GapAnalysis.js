@@ -24,10 +24,13 @@ const gapAnalysisSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    recommendations: {
-      type: [String],
-      default: [],
-    },
+    skillsWithScores: [
+      {
+        name: { type: String, required: true },
+        score: { type: Number, default: 0 },
+        reason: { type: String, default: "" }
+      }
+    ],
   },
   {
     timestamps: true,

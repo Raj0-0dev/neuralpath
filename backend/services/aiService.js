@@ -1,51 +1,53 @@
-export const RESUME_ANALYSIS_PROMPT = `You are an expert ATS (Applicant Tracking System) parser.
-Your task is to analyze the raw text extracted from a candidate's resume and extract key professional details in valid JSON.
+export const RESUME_ANALYSIS_PROMPT = `You are an expert ATS (Applicant Tracking System) parser and technical evaluator.
+Your task is to analyze the raw text extracted from a candidate's resume, evaluate their experience level for each of the target role's required skills on a scale of 0 to 10, and return the structured JSON data.
+
+Target Role Required Skills to Evaluate:
+{targetRoleRequirements}
 
 Resume Text:
 """
 {resumeText}
 """
 
-Please extract and return the following fields:
-1. "skills": A flat array of technical and professional skills mentioned in the resume.
-2. "experienceYears": The estimated number of years of professional experience as an integer.
-3. "targetRole": The candidate's primary or target professional role title.
+Evaluation Guidelines (Scale 0-10):
+- 0: The skill is completely missing or has no evidence of usage in the resume.
+- 1-3: Low readiness. The skill is only listed in a skills list, or has evidence of minor use in simple projects.
+- 4-7: Moderate readiness. The skill is used in a professional job setting or complex project, showing solid practical experience.
+- 8-10: High readiness. The candidate has done heavy engineering, system architecture, or performance optimization work with this skill.
 
 Response Format:
 Return ONLY a valid JSON object matching this schema. Do not include markdown formatting, markdown code blocks, or extra text.
 {
-  "skills": ["string"],
+  "skillsWithScores": [
+    {
+      "name": "string",
+      "score": 0,
+      "reason": "string"
+    }
+  ],
   "experienceYears": 0,
   "targetRole": "string"
 }`;
 
 /**
- * Analyzes raw resume text using an LLM to extract key professional attributes.
- * 
- * @param {string} resumeText - The raw text content of the resume.
- * @returns {Promise<object>} A promise resolving to the mock/structured parsed data (skills, experience, target role).
+ * Centered fetch wrapper that handles timeouts and makes a single attempt (no retries).
  */
-export const analyzeResumeText = async (resumeText) => {
+const fetchGemini = async (prompt, responseMimeType = "text/plain") => {
   const apiKey = process.env.GEMINI_API_KEY;
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-  if (!apiKey || apiKey === "your_gemini_api_key_here") {
-    console.warn("[AI Service] Warning: GEMINI_API_KEY is not defined or is placeholder. Using fallback keyword matching extraction.");
-    return fallbackExtract(resumeText);
-  }
+  const controller = new AbortController();
+  // Use a safer 30-second timeout limit to avoid aborting under heavy load
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
-    const prompt = RESUME_ANALYSIS_PROMPT.replace("{resumeText}", resumeText);
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
         body: JSON.stringify({
           contents: [
@@ -58,7 +60,7 @@ export const analyzeResumeText = async (resumeText) => {
             },
           ],
           generationConfig: {
-            responseMimeType: "application/json",
+            responseMimeType,
           },
         }),
         signal: controller.signal,
@@ -78,18 +80,58 @@ export const analyzeResumeText = async (resumeText) => {
       throw new Error("No candidates returned from Gemini API");
     }
 
-    const outputText = result.candidates[0].content.parts[0].text;
+    return result.candidates[0].content.parts[0].text;
+
+  } catch (error) {
+    clearTimeout(timeoutId);
+    const isTimeout = error.name === "AbortError";
+    console.error(`[AI Service] Request failed: ${isTimeout ? "Timeout" : error.message}`);
+    throw error;
+  }
+};
+
+/**
+ * Analyzes raw resume text using an LLM to extract key professional attributes and grade their readiness.
+ * 
+ * @param {string} resumeText - The raw text content of the resume.
+ * @param {string[]} targetRoleRequirements - Required skills list.
+ * @returns {Promise<object>} A promise resolving to the structured parsed data (skills, skillsWithScores, experience, target role).
+ */
+export const analyzeResumeText = async (resumeText, targetRoleRequirements = []) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey || apiKey === "your_gemini_api_key_here") {
+    throw new Error("GEMINI_API_KEY is not defined or is placeholder.");
+  }
+
+  try {
+    const reqsString = Array.isArray(targetRoleRequirements) 
+      ? targetRoleRequirements.map(s => `- ${s}`).join("\n")
+      : "";
+
+    const prompt = RESUME_ANALYSIS_PROMPT
+      .replace("{targetRoleRequirements}", reqsString)
+      .replace("{resumeText}", resumeText);
+
+    const outputText = await fetchGemini(prompt, "application/json");
     const parsedData = JSON.parse(outputText);
 
+    const skillsWithScores = Array.isArray(parsedData.skillsWithScores) ? parsedData.skillsWithScores : [];
+    
+    // Maintain backwards compatibility with a flat skills list (score > 0)
+    const skills = skillsWithScores
+      .filter(s => s.score > 0)
+      .map(s => s.name);
+
     return {
-      skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+      skills,
+      skillsWithScores,
       experienceYears: Number.isInteger(parsedData.experienceYears) ? parsedData.experienceYears : 0,
       targetRole: typeof parsedData.targetRole === "string" ? parsedData.targetRole : "",
     };
   } catch (error) {
     console.error("[AI Service] LLM Skill extraction failed:", error.message);
-    // Graceful fallback instead of crashing
-    return fallbackExtract(resumeText);
+    throw error;
   }
 };
 
@@ -185,62 +227,18 @@ export const generateRequiredSkillsForRole = async (role) => {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === "your_gemini_api_key_here") {
-    console.warn("[AI Service] Warning: GEMINI_API_KEY is not defined or is placeholder. Using fallback role skills generator.");
-    return fallbackRoleSkills(role);
+    throw new Error("GEMINI_API_KEY is not defined or is placeholder.");
   }
 
   try {
     const prompt = ROLE_SKILLS_PROMPT.replace("{role}", role);
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-          },
-        }),
-        signal: controller.signal,
-      }
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error (Status ${response.status}): ${errorText}`);
-    }
-
-    const result = await response.json();
-    
-    if (!result.candidates || result.candidates.length === 0) {
-      throw new Error("No candidates returned from Gemini API");
-    }
-
-    const outputText = result.candidates[0].content.parts[0].text;
+    const outputText = await fetchGemini(prompt, "application/json");
     const parsedData = JSON.parse(outputText);
 
     return Array.isArray(parsedData) ? parsedData : fallbackRoleSkills(role);
   } catch (error) {
     console.error("[AI Service] LLM role skills generation failed:", error.message);
-    return fallbackRoleSkills(role);
+    throw error;
   }
 };
 
@@ -255,58 +253,14 @@ export const analyzeGapWithAI = async (employeeSkills, targetRole) => {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === "your_gemini_api_key_here") {
-    console.warn("[AI Service] Warning: GEMINI_API_KEY is not defined or is placeholder. Using fallback gap analysis.");
-    return fallbackGapAnalysis(employeeSkills, targetRole);
+    throw new Error("GEMINI_API_KEY is not defined or is placeholder.");
   }
 
   try {
     const prompt = AI_GAP_ANALYSIS_PROMPT
       .replace("{employeeSkills}", JSON.stringify(employeeSkills))
       .replace("{targetRole}", targetRole);
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-          },
-        }),
-        signal: controller.signal,
-      }
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error (Status ${response.status}): ${errorText}`);
-    }
-
-    const result = await response.json();
-    
-    if (!result.candidates || result.candidates.length === 0) {
-      throw new Error("No candidates returned from Gemini API");
-    }
-
-    const outputText = result.candidates[0].content.parts[0].text;
+    const outputText = await fetchGemini(prompt, "application/json");
     const parsedData = JSON.parse(outputText);
 
     return {
@@ -317,7 +271,7 @@ export const analyzeGapWithAI = async (employeeSkills, targetRole) => {
     };
   } catch (error) {
     console.error("[AI Service] LLM gap analysis failed:", error.message);
-    return fallbackGapAnalysis(employeeSkills, targetRole);
+    throw error;
   }
 };
 

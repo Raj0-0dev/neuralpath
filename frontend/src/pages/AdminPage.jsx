@@ -11,7 +11,7 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold text-stone-850">Admin Control Panel</h1>
           <p className="text-stone-450 text-sm mt-1">Logged in as: <span className="font-mono bg-rose-100 text-rose-900 px-2 py-0.5 rounded text-xs uppercase">{user?.role}</span></p>
         </div>
-        <button 
+        <button
           onClick={handleLogOut}
           className="bg-stone-900 hover:bg-stone-800 text-white font-mono text-xs font-bold px-4 py-2 rounded-lg transition-all cursor-pointer"
         >
