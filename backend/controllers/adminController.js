@@ -10,16 +10,16 @@ import Resume from "../models/Resume.js";
 export const getEmployees = async (req, res, next) => {
   try {
     const employees = await User.find({ role: "employee" }).select("-password");
-    
+
     const employeeData = await Promise.all(
       employees.map(async (emp) => {
         const gap = await GapAnalysis.findOne({ employeeId: emp._id });
-        
+
         // strengths are the matching skills
         const strengths = gap ? gap.matchingSkills : [];
-        
+
         // gaps are the missing skills
-        const gaps = gap 
+        const gaps = gap
           ? gap.skillsWithScores
             .filter(s => s.score === 0)
             .map(s => ({
@@ -29,7 +29,7 @@ export const getEmployees = async (req, res, next) => {
               required: 75
             }))
           : [];
-          
+
         return {
           id: emp._id.toString(),
           name: emp.name,
@@ -42,7 +42,7 @@ export const getEmployees = async (req, res, next) => {
         };
       })
     );
-    
+
     res.status(200).json({
       success: true,
       data: employeeData
@@ -65,12 +65,12 @@ export const getEmployeeById = async (req, res, next) => {
     }
 
     const gap = await GapAnalysis.findOne({ employeeId: emp._id });
-    
+
     // strengths are the matching skills
     const strengths = gap ? gap.matchingSkills : [];
-    
+
     // gaps are the missing skills
-    const gaps = gap 
+    const gaps = gap
       ? gap.skillsWithScores
         .filter(s => s.score === 0)
         .map(s => ({
@@ -83,7 +83,7 @@ export const getEmployeeById = async (req, res, next) => {
 
     // Generate timeline dynamically
     const activityLog = [];
-    
+
     // 1. Created account activity
     activityLog.push({
       title: "Account Registered",
@@ -91,7 +91,7 @@ export const getEmployeeById = async (req, res, next) => {
       date: emp.createdAt ? emp.createdAt.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
       score: 100
     });
-    
+
     // 2. Uploaded resume activity (if they have a resume)
     const resume = await Resume.findOne({ employeeId: emp._id });
     if (resume) {
@@ -102,17 +102,17 @@ export const getEmployeeById = async (req, res, next) => {
         score: 100
       });
     }
-    
+
     // 3. Completed skills in ProgressTracking
     const progress = await ProgressTracking.findOne({ employeeId: emp._id });
     if (progress) {
       if (progress.completedModules && progress.completedModules.length > 0) {
         progress.completedModules.forEach(modId => {
           const parts = modId.split("_");
-          const label = parts.length > 2 
-            ? parts.slice(2).join(" ").toUpperCase() 
+          const label = parts.length > 2
+            ? parts.slice(2).join(" ").toUpperCase()
             : modId;
-          
+
           activityLog.push({
             title: `${label} Module Completed`,
             type: "Course",
@@ -150,7 +150,7 @@ export const getCohortAnalytics = async (req, res, next) => {
   try {
     const gapsList = await GapAnalysis.find({});
     const counts = {};
-    
+
     gapsList.forEach((gap) => {
       if (Array.isArray(gap.missingSkills)) {
         gap.missingSkills.forEach((skill) => {
@@ -158,12 +158,12 @@ export const getCohortAnalytics = async (req, res, next) => {
         });
       }
     });
-    
+
     const deficiencies = Object.keys(counts).map(skill => ({
       skill,
       count: counts[skill]
     })).sort((a, b) => b.count - a.count);
-    
+
     res.status(200).json({
       success: true,
       data: {
@@ -302,8 +302,8 @@ export const addResource = async (req, res, next) => {
       skillVideo = new SkillVideo({ skillName: trimmedSkill, videos: [] });
     }
 
-    const nextSegment = skillVideo.videos.length > 0 
-      ? Math.max(...skillVideo.videos.map(v => v.segment)) + 1 
+    const nextSegment = skillVideo.videos.length > 0
+      ? Math.max(...skillVideo.videos.map(v => v.segment)) + 1
       : 1;
 
     const newVideo = {
@@ -336,7 +336,7 @@ export const deleteResource = async (req, res, next) => {
   try {
     const { id } = req.params;
     let skillName, segment;
-    
+
     // Support either :id as skillName_segment or split path parameters
     if (id.includes("_")) {
       const parts = id.split("_");
