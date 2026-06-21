@@ -25,7 +25,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Activity,
-  Sparkles
+  Sparkles,
+  Plus,
+  Trash2,
+  Calendar,
+  ExternalLink
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -42,6 +46,23 @@ export default function AdminPage() {
   const [resources, setResources] = useState([]);
   const [skillDeficiencies, setSkillDeficiencies] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [newRoleTitle, setNewRoleTitle] = useState("");
+  const [newRoleDesc, setNewRoleDesc] = useState("");
+  const [newRoleSkills, setNewRoleSkills] = useState([]);
+
+  const [newResSkill, setNewResSkill] = useState("Python");
+  const [newResTitle, setNewResTitle] = useState("");
+  const [newResUrl, setNewResUrl] = useState("");
+  const [newResType, setNewResType] = useState("video");
+
+  const allSupportedSkills = [
+    "Python", "Data Analysis", "Machine Learning", "Deep Learning", 
+    "NLP / Large Language Models", "MLOps / Deployment", "Kubernetes / Docker", 
+    "Distributed Systems", "System Design", "Cloud Platforms (AWS)", 
+    "React / Frontend", "Backend Development", "Database / SQL", 
+    "Communication", "Team Leadership", "Project Management", "Agile / Scrum"
+  ];
 
   const fetchAdminData = async () => {
     const token = localStorage.getItem("np-mock-user-token");
@@ -129,6 +150,107 @@ export default function AdminPage() {
 
   const handleExitSession = () => {
     handleLogOut();
+  };
+
+  const handleAddRole = async (e) => {
+    e.preventDefault();
+    if (!newRoleTitle.trim()) return;
+    const token = localStorage.getItem("np-mock-user-token");
+    if (!token) return;
+    try {
+      const res = await fetch("/api/admin/roles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: newRoleTitle,
+          description: newRoleDesc,
+          requiredSkills: newRoleSkills
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRoles([...roles, data.data]);
+        setNewRoleTitle("");
+        setNewRoleDesc("");
+        setNewRoleSkills([]);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteRole = async (id) => {
+    const token = localStorage.getItem("np-mock-user-token");
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/admin/roles/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setRoles(roles.filter(r => r.id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSkillToggleInNewRole = (skill) => {
+    if (newRoleSkills.includes(skill)) {
+      setNewRoleSkills(newRoleSkills.filter(s => s !== skill));
+    } else {
+      setNewRoleSkills([...newRoleSkills, skill]);
+    }
+  };
+
+  const handleAddResource = async (e) => {
+    e.preventDefault();
+    if (!newResTitle.trim()) return;
+    const token = localStorage.getItem("np-mock-user-token");
+    if (!token) return;
+    try {
+      const res = await fetch("/api/admin/resources", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          skillName: newResSkill,
+          title: newResTitle,
+          url: newResUrl,
+          videoUrl: newResUrl,
+          type: newResType
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setResources([...resources, data.data]);
+        setNewResTitle("");
+        setNewResUrl("");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteResource = async (id) => {
+    const token = localStorage.getItem("np-mock-user-token");
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/admin/resources/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setResources(resources.filter(r => r.id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (loading) {
@@ -454,11 +576,11 @@ export default function AdminPage() {
                       let priorityLabel = "Medium Gap Frequency";
 
                       if (score >= 3) {
-                        badgeColor = "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200/40";
-                        priorityLabel = "High Critical Defect";
+                         badgeColor = "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200/40";
+                         priorityLabel = "High Critical Defect";
                       } else if (score === 1) {
-                        badgeColor = "bg-amber-50/50 dark:bg-amber-950/10 text-amber-500 dark:text-amber-400 border-amber-100/20";
-                        priorityLabel = "Isolated Defect";
+                         badgeColor = "bg-amber-50/50 dark:bg-amber-950/10 text-amber-500 dark:text-amber-400 border-amber-100/20";
+                         priorityLabel = "Isolated Defect";
                       }
 
                       return (
@@ -487,10 +609,248 @@ export default function AdminPage() {
           </div>
         )}
 
-        {activeTab !== "candidates" && activeTab !== "analytics" && (
-          <div className="p-8 rounded-2xl border text-center" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
-            {activeTab === "roles" && <p className="text-xs text-stone-500 font-semibold">Competency Models Placeholder Content</p>}
-            {activeTab === "resources" && <p className="text-xs text-stone-500 font-semibold">Curriculum Resources Placeholder Content</p>}
+        {activeTab === "roles" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              <h2 className="text-base font-black tracking-tight mb-2" style={{ color: t.textH }}>Active Competency Benchmarks</h2>
+              
+              {roles.map((role) => (
+                <div key={role.id} className="rounded-2xl border p-6 shadow-sm relative group" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="text-sm font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-500">{role.title}</h3>
+                      <p className="text-xs mt-1 leading-relaxed" style={{ color: t.textBody }}>{role.description}</p>
+                    </div>
+                    
+                    <button
+                      onClick={() => handleDeleteRole(role.id)}
+                      className="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                      title="Delete Role Model"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mt-4">
+                    {role.requiredSkills.map((skill) => (
+                      <span 
+                        key={skill}
+                        className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase border"
+                        style={{ 
+                          backgroundColor: t.tagBg, 
+                          color: t.tagText, 
+                          borderColor: t.tagBorder 
+                        }}
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-2xl border p-6 shadow-sm h-fit" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+              <h2 className="text-base font-black tracking-tight mb-4" style={{ color: t.textH }}>Add Competency Profile</h2>
+              
+              <form onSubmit={handleAddRole} className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block" style={{ color: t.textMuted }}>Role Title</label>
+                  <input
+                    id="new-role-title"
+                    type="text"
+                    placeholder="e.g. Lead DevOps Engineer"
+                    value={newRoleTitle}
+                    onChange={(e) => setNewRoleTitle(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 text-xs font-semibold rounded-lg border outline-none"
+                    style={{ 
+                      backgroundColor: t.bgInput, 
+                      borderColor: t.borderInput, 
+                      color: t.inputText 
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block" style={{ color: t.textMuted }}>Description</label>
+                  <textarea
+                    id="new-role-desc"
+                    placeholder="Specify role targets..."
+                    value={newRoleDesc}
+                    onChange={(e) => setNewRoleDesc(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 text-xs font-semibold rounded-lg border outline-none resize-none"
+                    style={{ 
+                      backgroundColor: t.bgInput, 
+                      borderColor: t.borderInput, 
+                      color: t.inputText 
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style={{ color: t.textMuted }}>Map Required Skills</label>
+                  <div className="max-h-48 overflow-y-auto border rounded-lg p-2.5 space-y-1.5" style={{ borderColor: t.border }}>
+                    {allSupportedSkills.map((skill) => {
+                      const isChecked = newRoleSkills.includes(skill);
+                      return (
+                        <label key={skill} className="flex items-center gap-2 text-[11px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleSkillToggleInNewRole(skill)}
+                            className="rounded accent-amber-500 outline-none border cursor-pointer"
+                          />
+                          <span>{skill}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  id="submit-role-btn"
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Save Competency Model</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "resources" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-base font-black tracking-tight" style={{ color: t.textH }}>Active Study Material</h2>
+                <p className="text-[11px] font-semibold mt-0.5 text-stone-400">Content mapped automatically to candidate competency gaps</p>
+              </div>
+
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                {resources.map((res) => (
+                  <div key={res.id} className="rounded-xl border p-4 shadow-sm relative group flex justify-between items-center" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-500 border border-amber-200/20">
+                          {res.skillName}
+                        </span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-stone-400 font-mono">
+                          {res.type}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-black mt-1.5" style={{ color: t.textH }}>{res.title}</h4>
+                      <a 
+                        href={res.url} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-[10px] font-semibold flex items-center gap-1 mt-1 text-amber-500 hover:underline"
+                      >
+                        <ExternalLink size={10} />
+                        <span>Access Content Link</span>
+                      </a>
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteResource(res.id)}
+                      className="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                      title="Delete Resource"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border p-5 shadow-sm" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+                <h3 className="text-xs font-black uppercase tracking-wider mb-4" style={{ color: t.textH }}>Bind Study Resource</h3>
+                <form onSubmit={handleAddResource} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block" style={{ color: t.textMuted }}>Map to Skill</label>
+                    <select
+                      value={newResSkill}
+                      onChange={(e) => setNewResSkill(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-semibold rounded-lg border outline-none cursor-pointer"
+                      style={{ backgroundColor: t.selectBg, borderColor: t.borderInput, color: t.selectText }}
+                    >
+                      {allSupportedSkills.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block" style={{ color: t.textMuted }}>Resource Type</label>
+                    <select
+                      value={newResType}
+                      onChange={(e) => setNewResType(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-semibold rounded-lg border outline-none cursor-pointer"
+                      style={{ backgroundColor: t.selectBg, borderColor: t.borderInput, color: t.selectText }}
+                    >
+                      <option value="video">Theory Video</option>
+                      <option value="doc">Concept Document</option>
+                      <option value="project">Practical Lab</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block" style={{ color: t.textMuted }}>Resource Title</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Distributed Database Patterns Course"
+                      value={newResTitle}
+                      onChange={(e) => setNewResTitle(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 text-xs font-semibold rounded-lg border outline-none"
+                      style={{ backgroundColor: t.bgInput, borderColor: t.borderInput, color: t.inputText }}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider mb-1 block" style={{ color: t.textMuted }}>URL / File Link</label>
+                    <input
+                      type="url"
+                      placeholder="https://acme.academy/course"
+                      value={newResUrl}
+                      onChange={(e) => setNewResUrl(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-semibold rounded-lg border outline-none"
+                      style={{ backgroundColor: t.bgInput, borderColor: t.borderInput, color: t.inputText }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="md:col-span-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-mono text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>Bind Study Resource</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-base font-black tracking-tight" style={{ color: t.textH }}>Upskilling Workshops</h2>
+                <p className="text-[11px] font-semibold mt-0.5 text-stone-400">Scheduled synchronous lectures and interactive sessions</p>
+              </div>
+
+              <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/20 text-amber-500 font-black flex items-center justify-center text-sm border border-amber-200/50 mx-auto mb-4 animate-pulse">
+                  <Calendar size={20} />
+                </div>
+                <h4 className="text-sm font-black mb-2" style={{ color: t.textH }}>Workshops Coming Soon</h4>
+                <p className="text-xs leading-relaxed text-stone-500 max-w-xs mx-auto mb-4">
+                  In the next release, recruiters will be able to schedule live, interactive peer upskilling sessions synced with employee gap calendars.
+                </p>
+                <span className="px-3 py-1 bg-amber-500/10 text-amber-500 font-mono text-[9px] font-bold uppercase rounded-lg border border-amber-500/20 tracking-wider">
+                  Postponed / Phase 3
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -498,7 +858,6 @@ export default function AdminPage() {
       <AnimatePresence>
         {selectedCandidate && (
           <div className="fixed inset-0 z-50 flex justify-end">
-            
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -515,7 +874,6 @@ export default function AdminPage() {
               className="relative w-full max-w-lg h-full flex flex-col justify-between shadow-2xl overflow-y-auto p-6 md:p-8"
               style={{ backgroundColor: t.bgCard, borderLeft: `1px solid ${t.border}` }}
             >
-              
               <div>
                 <div className="flex justify-between items-start mb-6">
                   <div>
