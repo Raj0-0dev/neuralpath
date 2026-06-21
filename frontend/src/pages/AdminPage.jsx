@@ -3,6 +3,16 @@ import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
 import { motion, AnimatePresence } from "motion/react";
 import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from "recharts";
+import {
   Settings,
   Users,
   TrendingUp,
@@ -14,12 +24,13 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
-  Activity
+  Activity,
+  Sparkles
 } from "lucide-react";
 
 export default function AdminPage() {
   const { user, handleLogOut } = useApp();
-  const { t } = useTheme();
+  const { t, isDark } = useTheme();
 
   const [activeTab, setActiveTab] = useState("candidates");
   const [candidateQuery, setCandidateQuery] = useState("");
@@ -70,7 +81,7 @@ export default function AdminPage() {
         setSkillDeficiencies(dataAnal.data.deficiencies);
       }
     } catch (err) {
-      console.error("Error fetching admin data:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -112,7 +123,7 @@ export default function AdminPage() {
         setSelectedCandidate(data.data);
       }
     } catch (err) {
-      console.error("Error loading candidate audit logs:", err);
+      console.error(err);
     }
   };
 
@@ -192,10 +203,10 @@ export default function AdminPage() {
         <div className="rounded-2xl p-5 border transition-all shadow-sm" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
           <div className="flex justify-between items-start text-stone-400 mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: t.textMuted }}>Engine Status</span>
-            <Database size={16} className="text-emerald-500" />
+            <Database size={16} className="text-emerald-500 animate-pulse" />
           </div>
           <div className="text-sm font-bold flex items-center gap-2 py-1.5" style={{ color: t.textH }}>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-ping" />
             <span className="text-emerald-500 font-mono tracking-wider">SYNC_SUCCESS</span>
           </div>
           <div className="text-[10px] font-semibold" style={{ color: t.textMuted }}>Connection Health OK</div>
@@ -315,7 +326,7 @@ export default function AdminPage() {
                       </tr>
                     ) : (
                       filteredCandidates.map((candidate) => (
-                        <tr key={candidate.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/10 transition-colors">
+                        <tr key={candidate.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-850/10 transition-colors">
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-black flex items-center justify-center text-xs border border-amber-200/50">
@@ -366,9 +377,118 @@ export default function AdminPage() {
           </div>
         )}
 
-        {activeTab !== "candidates" && (
+        {activeTab === "analytics" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 rounded-2xl border p-6 shadow-sm flex flex-col" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-base font-black tracking-tight" style={{ color: t.textH }}>Skill Gaps Frequency Histogram</h2>
+                  <p className="text-[11px] font-semibold mt-0.5" style={{ color: t.textMuted }}>Count of employees lacking competency across core categories</p>
+                </div>
+                <span className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 text-amber-500 border border-amber-200/20">
+                  <Activity size={16} />
+                </span>
+              </div>
+
+              <div className="h-80 w-full text-[10px]">
+                {skillDeficiencies.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-stone-400 italic">
+                    No cohort deficiencies recorded. Ensure candidates have active gap analyses.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={skillDeficiencies}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke={t.chartGrid} vertical={false} />
+                      <XAxis 
+                        dataKey="skill" 
+                        stroke={t.chartAxis}
+                        tickLine={false}
+                        axisLine={false}
+                        angle={-20}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis 
+                        stroke={t.chartAxis} 
+                        tickLine={false} 
+                        axisLine={false} 
+                        allowDecimals={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: isDark ? "#1c1917" : "#ffffff",
+                          borderColor: t.border,
+                          borderRadius: "12px",
+                          fontFamily: "monospace",
+                          color: isDark ? "#FAF9F6" : "#1c1917",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.08)"
+                        }}
+                      />
+                      <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                        {skillDeficiencies.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.count >= 3 ? "#d97706" : entry.count === 2 ? "#f59e0b" : "#fbbf24"} 
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border p-6 shadow-sm flex flex-col justify-between" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+              <div>
+                <h2 className="text-base font-black tracking-tight mb-4" style={{ color: t.textH }}>Priority Deficiencies</h2>
+                <div className="space-y-4">
+                  {skillDeficiencies.length === 0 ? (
+                    <p className="text-xs text-stone-400 italic">No deficiencies found across cohort.</p>
+                  ) : (
+                    skillDeficiencies.slice(0, 5).map((def) => {
+                      const score = def.count;
+                      let badgeColor = "bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400 border-yellow-200/40";
+                      let priorityLabel = "Medium Gap Frequency";
+
+                      if (score >= 3) {
+                        badgeColor = "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200/40";
+                        priorityLabel = "High Critical Defect";
+                      } else if (score === 1) {
+                        badgeColor = "bg-amber-50/50 dark:bg-amber-950/10 text-amber-500 dark:text-amber-400 border-amber-100/20";
+                        priorityLabel = "Isolated Defect";
+                      }
+
+                      return (
+                        <div key={def.skill} className="flex justify-between items-center p-3 rounded-xl border" style={{ borderColor: t.border }}>
+                          <div>
+                            <div className="text-xs font-extrabold" style={{ color: t.textH }}>{def.skill}</div>
+                            <span className="text-[9px] font-bold mt-0.5 block uppercase tracking-wider text-stone-400">{priorityLabel}</span>
+                          </div>
+                          <div className={`px-2.5 py-1 rounded-lg text-xs font-black border ${badgeColor}`}>
+                            {score} {score === 1 ? "User" : "Users"}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 border-t pt-4" style={{ borderColor: t.border }}>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-stone-50 dark:bg-stone-800/30 text-stone-600 dark:text-stone-300 text-[11px] font-semibold border border-dashed" style={{ borderColor: t.border }}>
+                  <Sparkles className="text-amber-500 shrink-0" size={16} />
+                  <span><strong>Recommendation:</strong> Organize a team-wide masterclass on <strong>{skillDeficiencies[0]?.skill || "cloud and deployment patterns"}</strong> to solve the team's largest bottleneck.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab !== "candidates" && activeTab !== "analytics" && (
           <div className="p-8 rounded-2xl border text-center" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
-            {activeTab === "analytics" && <p className="text-xs text-stone-500 font-semibold">Cohort Analytics Placeholder Content</p>}
             {activeTab === "roles" && <p className="text-xs text-stone-500 font-semibold">Competency Models Placeholder Content</p>}
             {activeTab === "resources" && <p className="text-xs text-stone-500 font-semibold">Curriculum Resources Placeholder Content</p>}
           </div>
