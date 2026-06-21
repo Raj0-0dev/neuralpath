@@ -162,10 +162,58 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border p-8 text-center" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
-        <p className="text-sm font-semibold" style={{ color: t.textMuted }}>
-          Scaffolding successfully loaded. Ready for tab layout integration.
-        </p>
+      <div className="flex border-b mb-6 overflow-x-auto pb-px" style={{ borderColor: t.divider }}>
+        <button
+          id="tab-candidates"
+          onClick={() => setActiveTab("candidates")}
+          className={`px-5 py-3 text-xs font-black tracking-tight border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === "candidates"
+              ? "border-amber-500 text-amber-500"
+              : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-stone-300"
+          }`}
+        >
+          Talent Directory ({candidates.length})
+        </button>
+        <button
+          id="tab-analytics"
+          onClick={() => setActiveTab("analytics")}
+          className={`px-5 py-3 text-xs font-black tracking-tight border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === "analytics"
+              ? "border-amber-500 text-amber-500"
+              : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-stone-300"
+          }`}
+        >
+          Cohort Analytics
+        </button>
+        <button
+          id="tab-roles"
+          onClick={() => setActiveTab("roles")}
+          className={`px-5 py-3 text-xs font-black tracking-tight border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === "roles"
+              ? "border-amber-500 text-amber-500"
+              : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-stone-300"
+          }`}
+        >
+          Competency Models
+        </button>
+        <button
+          id="tab-resources"
+          onClick={() => setActiveTab("resources")}
+          className={`px-5 py-3 text-xs font-black tracking-tight border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === "resources"
+              ? "border-amber-500 text-amber-500"
+              : "border-transparent text-stone-500 hover:text-stone-900 dark:hover:text-stone-300"
+          }`}
+        >
+          Curriculum Resources
+        </button>
+      </div>
+
+      <div className="p-8 rounded-2xl border text-center" style={{ backgroundColor: t.bgCard, borderColor: t.border }}>
+        {activeTab === "candidates" && <p className="text-xs text-stone-500 font-semibold">Talent Directory Placeholder Content</p>}
+        {activeTab === "analytics" && <p className="text-xs text-stone-500 font-semibold">Cohort Analytics Placeholder Content</p>}
+        {activeTab === "roles" && <p className="text-xs text-stone-500 font-semibold">Competency Models Placeholder Content</p>}
+        {activeTab === "resources" && <p className="text-xs text-stone-500 font-semibold">Curriculum Resources Placeholder Content</p>}
       </div>
 
     </div>
