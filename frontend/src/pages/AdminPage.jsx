@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Settings,
   Users,
@@ -9,7 +10,11 @@ import {
   Database,
   Search,
   Eye,
-  LogOut
+  LogOut,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Activity
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -19,6 +24,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("candidates");
   const [candidateQuery, setCandidateQuery] = useState("");
   const [selectedRoleFilter, setSelectedRoleFilter] = useState("all");
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
 
   const [candidates, setCandidates] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -91,8 +97,23 @@ export default function AdminPage() {
     return Math.round(sum / candidates.length);
   }, [candidates]);
 
-  const handleOpenAudit = (candidate) => {
-    console.log("Auditing candidate profile:", candidate.name);
+  const handleOpenAudit = async (candidate) => {
+    setSelectedCandidate(candidate);
+    
+    const token = localStorage.getItem("np-mock-user-token");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`/api/admin/employees/${candidate.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSelectedCandidate(data.data);
+      }
+    } catch (err) {
+      console.error("Error loading candidate audit logs:", err);
+    }
   };
 
   const handleExitSession = () => {
@@ -353,6 +374,153 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedCandidate && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedCandidate(null)}
+              className="absolute inset-0 bg-stone-900"
+            />
+
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="relative w-full max-w-lg h-full flex flex-col justify-between shadow-2xl overflow-y-auto p-6 md:p-8"
+              style={{ backgroundColor: t.bgCard, borderLeft: `1px solid ${t.border}` }}
+            >
+              
+              <div>
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-black flex items-center justify-center text-base border border-amber-200/50 mb-3 uppercase">
+                      {selectedCandidate.name.substring(0, 2)}
+                    </div>
+                    <h2 className="text-lg font-black tracking-tight" style={{ color: t.textH }}>{selectedCandidate.name}</h2>
+                    <p className="text-[11px] font-mono mt-0.5" style={{ color: t.textMuted }}>{selectedCandidate.email}</p>
+                    <span className="px-2 py-0.5 rounded text-[8px] font-black bg-stone-100 dark:bg-stone-800 text-stone-500 uppercase border border-stone-200/40 tracking-wider inline-block mt-2">
+                      {selectedCandidate.company}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedCandidate(null)}
+                    className="p-1.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-850 text-stone-500 hover:text-stone-900 dark:hover:text-stone-300 border transition-all cursor-pointer"
+                    style={{ borderColor: t.border }}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                <div className="rounded-xl border p-4 mb-6 shadow-sm bg-gradient-to-br from-amber-500/5 to-amber-600/5" style={{ borderColor: t.border }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-500">Readiness Score</span>
+                    <span className="text-base font-black font-mono text-amber-600 dark:text-amber-500">{selectedCandidate.readiness || 0}%</span>
+                  </div>
+                  <div className="w-full bg-stone-100 dark:bg-stone-800 h-3 rounded-full overflow-hidden border border-stone-200/30 mb-2">
+                    <div 
+                      className="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full"
+                      style={{ width: `${selectedCandidate.readiness || 0}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] font-semibold text-stone-400">
+                    Candidate has completed the major core requisites for <strong>{selectedCandidate.targetRole}</strong>.
+                  </p>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-xs font-black uppercase tracking-wider mb-2.5 flex items-center gap-1.5" style={{ color: t.textH }}>
+                    <CheckCircle2 className="text-emerald-500 shrink-0" size={14} />
+                    <span>Identified Strengths ({selectedCandidate.strengths?.length || 0})</span>
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {!selectedCandidate.strengths || selectedCandidate.strengths.length === 0 ? (
+                      <span className="text-xs text-stone-400 italic">None detected.</span>
+                    ) : (
+                      selectedCandidate.strengths.map(s => (
+                        <span key={s} className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/40">
+                          {s}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-xs font-black uppercase tracking-wider mb-3 flex items-center gap-1.5" style={{ color: t.textH }}>
+                    <AlertCircle className="text-amber-500 shrink-0" size={14} />
+                    <span>Target Gaps & Priority</span>
+                  </h3>
+                  <div className="space-y-2">
+                    {!selectedCandidate.gaps || selectedCandidate.gaps.length === 0 ? (
+                      <p className="text-xs text-stone-400 italic">No competency gaps identified for this candidate.</p>
+                    ) : (
+                      selectedCandidate.gaps.map(g => {
+                        let priorityBadge = "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-200/30";
+                        if (g.priority === "medium") {
+                          priorityBadge = "bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400 border-yellow-200/30";
+                        } else if (g.priority === "low") {
+                          priorityBadge = "bg-stone-50 dark:bg-stone-800 text-stone-500 border-stone-200/30";
+                        }
+                        
+                        return (
+                          <div key={g.skill} className="flex justify-between items-center p-3 rounded-xl border bg-stone-50/30 dark:bg-stone-850/10" style={{ borderColor: t.border }}>
+                            <div>
+                              <div className="text-xs font-extrabold" style={{ color: t.textH }}>{g.skill}</div>
+                              <div className="text-[10px] text-stone-400 font-mono mt-0.5">Progress: {g.current}% &rarr; Target: {g.required}%</div>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border tracking-wider ${priorityBadge}`}>
+                              {g.priority}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider mb-3 flex items-center gap-1.5" style={{ color: t.textH }}>
+                    <Activity className="text-amber-500 shrink-0" size={14} />
+                    <span>Completed Milestones ({selectedCandidate.activityLog?.length || 0})</span>
+                  </h3>
+                  <div className="border-l-2 pl-4 ml-2 space-y-4" style={{ borderColor: t.border }}>
+                    {!selectedCandidate.activityLog || selectedCandidate.activityLog.length === 0 ? (
+                      <p className="text-xs text-stone-400 italic">No activity logs captured.</p>
+                    ) : (
+                      selectedCandidate.activityLog.map((log, idx) => (
+                        <div key={idx} className="relative">
+                          <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-amber-500 border-2" style={{ borderColor: t.bgCard }} />
+                          <div className="text-[10px] font-bold text-stone-400 font-mono">{log.date} &bull; {log.type}</div>
+                          <div className="text-xs font-black mt-0.5" style={{ color: t.textH }}>{log.title}</div>
+                          <div className="text-[10px] font-bold text-amber-500 font-mono mt-0.5">Score Achieved: {log.score}%</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="mt-8 border-t pt-4" style={{ borderColor: t.border }}>
+                <button
+                  onClick={() => setSelectedCandidate(null)}
+                  className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-850 text-white font-mono text-[11px] font-bold text-center cursor-pointer transition-all"
+                >
+                  Close Audit Feed
+                </button>
+              </div>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
