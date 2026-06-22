@@ -5,6 +5,7 @@ import EmployeeSkill from "../models/EmployeeSkill.js";
 import ProgressTracking from "../models/ProgressTracking.js";
 import SkillVideo from "../models/SkillVideo.js";
 import Resume from "../models/Resume.js";
+import LearningPath from "../models/LearningPath.js";
 
 // GET /api/admin/employees
 export const getEmployees = async (req, res, next) => {
@@ -137,6 +138,7 @@ export const getEmployeeById = async (req, res, next) => {
         readiness: gap ? gap.matchPercentage : 0,
         strengths,
         gaps,
+        skillsWithScores: gap ? gap.skillsWithScores : [],
         activityLog
       }
     });
@@ -256,6 +258,79 @@ export const deleteRole = async (req, res, next) => {
   }
 };
 
+export const updateRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { title, description, requiredSkills } = req.body;
+
+    const role = await Role.findById(id);
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        message: "Competency profile not found"
+      });
+    }
+
+    const oldTitle = role.title;
+
+    if (title && title.trim() !== role.title) {
+      const trimmedTitle = title.trim();
+      const existingRole = await Role.findOne({ title: { $regex: new RegExp(`^${trimmedTitle}$`, "i") }, _id: { $ne: id } });
+      if (existingRole) {
+        return res.status(400).json({
+          success: false,
+          message: "A competency profile with this role title already exists"
+        });
+      }
+      role.title = trimmedTitle;
+    }
+
+    if (description !== undefined) {
+      role.description = description;
+    }
+
+    if (Array.isArray(requiredSkills)) {
+      role.requiredSkills = requiredSkills;
+    }
+
+    await role.save();
+
+    const affectedUsers = await User.find({
+      $or: [
+        { targetRole: oldTitle },
+        { targetRole: role.title }
+      ]
+    });
+
+    if (affectedUsers.length > 0) {
+      const userIds = affectedUsers.map(u => u._id);
+      
+      if (oldTitle !== role.title) {
+        await User.updateMany(
+          { _id: { $in: userIds } },
+          { targetRole: role.title }
+        );
+      }
+
+      await GapAnalysis.deleteMany({ employeeId: { $in: userIds } });
+      await LearningPath.deleteMany({ employeeId: { $in: userIds } });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Competency profile updated successfully and invalidated active candidate caches",
+      data: {
+        id: role._id.toString(),
+        title: role.title,
+        description: role.description,
+        requiredSkills: role.requiredSkills
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // GET /api/admin/resources
 export const getResources = async (req, res, next) => {
   try {
@@ -285,46 +360,71 @@ export const getResources = async (req, res, next) => {
 // POST /api/admin/resources
 export const addResource = async (req, res, next) => {
   try {
-    const { skillName, title, url, videoUrl } = req.body;
-    if (!skillName || !skillName.trim() || !title || !title.trim()) {
+    const { skillName, title, url, videoUrl, videos } = req.body;
+    if (!skillName || !skillName.trim()) {
       return res.status(400).json({
         success: false,
-        message: "skillName and title are required"
+        message: "skillName is required"
       });
     }
 
     const trimmedSkill = skillName.trim();
-    const finalUrl = url || videoUrl || "#";
-
     let skillVideo = await SkillVideo.findOne({ skillName: { $regex: new RegExp(`^${trimmedSkill}$`, "i") } });
     if (!skillVideo) {
-      // Find exact case or create new
       skillVideo = new SkillVideo({ skillName: trimmedSkill, videos: [] });
     }
 
-    const nextSegment = skillVideo.videos.length > 0
-      ? Math.max(...skillVideo.videos.map(v => v.segment)) + 1
-      : 1;
+    const addedVideos = [];
 
-    const newVideo = {
-      segment: nextSegment,
-      title: title.trim(),
-      videoUrl: finalUrl
-    };
+    if (Array.isArray(videos) && videos.length > 0) {
+      for (const item of videos) {
+        if (item.title && item.title.trim()) {
+          const nextSegment = skillVideo.videos.length > 0
+            ? Math.max(...skillVideo.videos.map(v => v.segment)) + 1
+            : 1;
+          const newVideo = {
+            segment: nextSegment,
+            title: item.title.trim(),
+            videoUrl: item.url || item.videoUrl || "#"
+          };
+          skillVideo.videos.push(newVideo);
+          addedVideos.push(newVideo);
+        }
+      }
+    } else {
+      if (!title || !title.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "title is required"
+        });
+      }
+      const finalUrl = url || videoUrl || "#";
+      const nextSegment = skillVideo.videos.length > 0
+        ? Math.max(...skillVideo.videos.map(v => v.segment)) + 1
+        : 1;
+      const newVideo = {
+        segment: nextSegment,
+        title: title.trim(),
+        videoUrl: finalUrl
+      };
+      skillVideo.videos.push(newVideo);
+      addedVideos.push(newVideo);
+    }
 
-    skillVideo.videos.push(newVideo);
     await skillVideo.save();
+
+    const dataResponse = addedVideos.map(v => ({
+      id: `${skillVideo.skillName}_${v.segment}`,
+      skillName: skillVideo.skillName,
+      title: v.title,
+      url: v.videoUrl,
+      type: "video",
+      segment: v.segment
+    }));
 
     res.status(201).json({
       success: true,
-      data: {
-        id: `${skillVideo.skillName}_${newVideo.segment}`,
-        skillName: skillVideo.skillName,
-        title: newVideo.title,
-        url: newVideo.videoUrl,
-        type: "video",
-        segment: newVideo.segment
-      }
+      data: dataResponse.length === 1 ? dataResponse[0] : dataResponse
     });
   } catch (error) {
     next(error);

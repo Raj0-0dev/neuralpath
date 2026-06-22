@@ -12,7 +12,7 @@ export const registerUser = async (userData) => {
   const user = new User({
     email,
     password,
-    role: role || "employee",
+    role: "employee",
     name: name || email.split("@")[0],
     targetRole: targetRole || "",
     company: company || "",

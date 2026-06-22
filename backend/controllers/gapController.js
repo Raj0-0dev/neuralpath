@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import EmployeeSkill from "../models/EmployeeSkill.js";
 import GapAnalysis from "../models/GapAnalysis.js";
+import Role from "../models/Role.js";
 import { 
   getRequiredSkillsForRole, 
   performProgrammaticAnalysis
@@ -168,6 +169,23 @@ export const getCustomGapAnalysis = async (req, res, next) => {
           missingSkills: programmatic.missingSkills
         }
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getActiveRoles = async (req, res, next) => {
+  try {
+    const roles = await Role.find({});
+    res.status(200).json({
+      success: true,
+      data: roles.map(r => ({
+        id: r._id.toString(),
+        title: r.title,
+        description: r.description,
+        requiredSkills: r.requiredSkills
+      }))
     });
   } catch (error) {
     next(error);

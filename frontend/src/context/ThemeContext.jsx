@@ -50,83 +50,27 @@ const themes = {
         selectBg: "#ffffff",
         selectText: "#1c1917",
     },
-    dark: {
-        isDark: true,
-        bg: "#121110",
-        bgNav: "rgba(18,17,16,0.92)",
-        bgCard: "#1c1917",
-        bgCream: "#292524",
-        bgInput: "#1c1917",
-        bgStep: "#292524",
-        bgStepHover: "#3e3a38",
-        bgStatStrip: "rgba(28,25,23,0.85)",
-        textH: "#FAF9F6",
-        textBody: "#d6d3d1",
-        textMuted: "#a8a29e",
-        textFaint: "#78716c",
-        border: "#44403c",
-        borderInput: "#57534e",
-        tagBg: "rgba(217,119,6,0.15)",
-        tagBorder: "rgba(217,119,6,0.3)",
-        tagText: "#fbbf24",
-        tabBg: "#292524",
-        tabBorder: "#44403c",
-        tabActive: "#1c1917",
-        tabActiveText: "#FAF9F6",
-        tabInactiveText: "#a8a29e",
-        btnGhostBorder: "#44403c",
-        btnGhostText: "#FAF9F6",
-        divider: "#44403c",
-        linkText: "#fbbf24",
-        roleBtn: "#1c1917",
-        roleBtnBorder: "#44403c",
-        roleBtnText: "#a8a29e",
-        roleBtnSel: "rgba(217,119,6,0.2)",
-        roleBtnSelBorder: "#fbbf24",
-        roleBtnSelText: "#fcd34d",
-        chartAxis: "#a8a29e",
-        chartGrid: "rgba(250,249,246,0.06)",
-        statBorder: "#44403c",
-        outlineStroke: "#fbbf24",
-        heroGrad: "linear-gradient(130deg,#FAF9F6 0%,#d6d3d1 60%,#fbbf24 100%)",
-        heroSub: "rgba(250,249,246,0.6)",
-        statN: "linear-gradient(130deg,#FAF9F6,#d6d3d1)",
-        stepNum: "#57534e",
-        aiExplain: "rgba(250,249,246,0.6)",
-        inputBg: "#1c1917",
-        inputText: "#FAF9F6",
-        inputPlaceholder: "#78716c",
-        selectBg: "#1c1917",
-        selectText: "#FAF9F6",
-    },
 };
 
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-    const [isDark, setIsDark] = useState(() => {
-        return localStorage.getItem("np-theme") === "dark";
-    });
+    const isDark = false;
 
     const toggle = () => {
-        setIsDark((d) => {
-            const next = !d;
-            localStorage.setItem("np-theme", next ? "dark" : "light");
-            return next;
-        });
     };
 
     useEffect(() => {
-        document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-        document.body.style.background = isDark ? "#121110" : "#FAF9F6";
+        document.documentElement.setAttribute("data-theme", "light");
+        document.body.style.background = "#FAF9F6";
         document.body.style.transition = "background 0.3s, color 0.3s";
-        document.body.style.color = isDark ? "#FAF9F6" : "#1c1917";
-    }, [isDark]);
+        document.body.style.color = "#1c1917";
+    }, []);
 
     const value = {
         isDark,
         toggle,
-        t: isDark ? themes.dark : themes.light,
+        t: themes.light,
     };
 
     return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

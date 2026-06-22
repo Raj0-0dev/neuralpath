@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import { useTheme } from "../context/ThemeContext";
@@ -30,6 +30,7 @@ const PRESETS = [
 
 export default function UploadPage() {
   const { profile, setAnalysis, setPathway, analysis, loadGapAnalysis, loadLearningPath } = useApp();
+  const { isDark, t } = useTheme();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -38,6 +39,27 @@ export default function UploadPage() {
   const [fileDetails, setFileDetails] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [targetRole, setTargetRole] = useState("Software Engineer");
+  const [availableRoles, setAvailableRoles] = useState([]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      const token = localStorage.getItem("np-mock-user-token");
+      if (!token) return;
+      try {
+        const res = await fetch("/api/gap-analysis/roles", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.data.length > 0) {
+          setAvailableRoles(data.data);
+          setTargetRole(data.data[0].title);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchRoles();
+  }, []);
 
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -180,12 +202,20 @@ export default function UploadPage() {
                 onChange={(e) => setTargetRole(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-850 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors cursor-pointer appearance-none"
               >
-                <option value="Frontend Developer">Frontend Developer</option>
-                <option value="Backend Developer">Backend Developer</option>
-                <option value="Full Stack Developer">Full Stack Developer</option>
-                <option value="Data Scientist">Data Scientist</option>
-                <option value="DevOps Engineer">DevOps Engineer</option>
-                <option value="Software Engineer">Software Engineer</option>
+                {availableRoles.length > 0 ? (
+                  availableRoles.map((role) => (
+                    <option key={role.id} value={role.title}>{role.title}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Frontend Developer">Frontend Developer</option>
+                    <option value="Backend Developer">Backend Developer</option>
+                    <option value="Full Stack Developer">Full Stack Developer</option>
+                    <option value="Data Scientist">Data Scientist</option>
+                    <option value="DevOps Engineer">DevOps Engineer</option>
+                    <option value="Software Engineer">Software Engineer</option>
+                  </>
+                )}
               </select>
             </div>
 

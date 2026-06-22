@@ -16,6 +16,8 @@ import UploadPage from "./pages/UploadPage";
 import DashboardPage from "./pages/DashboardPage";
 import PathwayPage from "./pages/PathwayPage";
 import AdminPage from "./pages/AdminPage";
+import AdminTalentPage from "./pages/AdminTalentPage";
+import AdminAnalyticsPage from "./pages/AdminAnalyticsPage";
 
 function AppContent() {
   const location = useLocation();
@@ -24,7 +26,10 @@ function AppContent() {
 
   // Authenticated workspace routes
   const authRoutes = ["/dashboard", "/upload", "/pathwaypage", "/admin"];
-  const isAuthRoute = isLoggedIn && authRoutes.includes(location.pathname);
+  const isAuthRoute = isLoggedIn && (
+    authRoutes.includes(location.pathname) ||
+    location.pathname.startsWith("/admin")
+  );
 
   return (
     <div className={`min-h-screen bg-[#FAF9F6] text-stone-800 font-sans selection:bg-amber-100 selection:text-amber-900 flex flex-col ${location.pathname === "/login" ? "h-screen overflow-hidden" : ""}`}>
@@ -85,6 +90,22 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRole="admin">
                 <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/talent"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminTalentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminAnalyticsPage />
               </ProtectedRoute>
             }
           />

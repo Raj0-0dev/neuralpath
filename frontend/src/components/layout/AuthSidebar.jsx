@@ -11,7 +11,10 @@ import {
   BrainCircuit,
   Rocket,
   ChevronLeft,
-  Settings
+  Settings,
+  Users,
+  TrendingUp,
+  Database
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -29,7 +32,10 @@ export default function AuthSidebar({ isCollapsed, setIsCollapsed }) {
 
   const navItems = profile?.role === 'admin'
     ? [
-      { name: 'HR Admin Panel', path: '/admin', icon: Settings }
+      { name: 'Talent Directory', path: '/admin/talent', icon: Users },
+      { name: 'Cohort Analytics', path: '/admin/analytics', icon: TrendingUp },
+      { name: 'Competency Models', path: '/admin?tab=roles', icon: Settings },
+      { name: 'Curriculum Resources', path: '/admin?tab=resources', icon: Database }
     ]
     : [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -67,7 +73,9 @@ export default function AuthSidebar({ isCollapsed, setIsCollapsed }) {
         {/* Navigation items */}
         <div className="space-y-1.5">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = item.path.includes('?')
+              ? (location.pathname + location.search) === item.path || (item.path === '/admin?tab=candidates' && location.pathname === '/admin' && !location.search)
+              : location.pathname === item.path;
             const IconComponent = item.icon;
             return (
               <Link

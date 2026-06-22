@@ -30,10 +30,6 @@ export default function LoginPage() {
         }
     }, [isLoggedIn, profile, authLoading, navigate]);
 
-    if (authLoading) {
-        return null;
-    }
-
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -44,6 +40,10 @@ export default function LoginPage() {
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
+
+    if (authLoading) {
+        return null;
+    }
 
     const handleAuthResult = async (resPromise) => {
         setLoading(true);
@@ -210,18 +210,6 @@ export default function LoginPage() {
                                 </div>
                             </div>
 
-                            {/* Side-by-Side Role Config Fields */}
-                            <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Account Role</label>
-                                <select
-                                    value={role}
-                                    onChange={(e) => setRole(e.target.value)}
-                                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors cursor-pointer appearance-none"
-                                >
-                                    <option value="employee">Candidate View</option>
-                                    <option value="admin">HR Admin View</option>
-                                </select>
-                            </div>
                         </div>
                     )}
 
