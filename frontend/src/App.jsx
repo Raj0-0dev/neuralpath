@@ -15,9 +15,10 @@ import LoginPage from "./pages/LoginPage";
 import UploadPage from "./pages/UploadPage";
 import DashboardPage from "./pages/DashboardPage";
 import PathwayPage from "./pages/PathwayPage";
-import AdminPage from "./pages/AdminPage";
 import AdminTalentPage from "./pages/AdminTalentPage";
 import AdminAnalyticsPage from "./pages/AdminAnalyticsPage";
+import AdminRolesPage from "./pages/AdminRolesPage";
+import AdminResourcesPage from "./pages/AdminResourcesPage";
 
 function AppContent() {
   const location = useLocation();
@@ -87,11 +88,7 @@ function AppContent() {
           {/* Admin Gated Views */}
           <Route
             path="/admin"
-            element={
-              <ProtectedRoute allowedRole="admin">
-                <AdminPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/admin/talent" replace />}
           />
           <Route
             path="/admin/talent"
@@ -106,6 +103,22 @@ function AppContent() {
             element={
               <ProtectedRoute allowedRole="admin">
                 <AdminAnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/roles"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminRolesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/resources"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminResourcesPage />
               </ProtectedRoute>
             }
           />
