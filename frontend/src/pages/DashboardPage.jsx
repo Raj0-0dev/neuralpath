@@ -205,14 +205,13 @@ export default function DashboardPage() {
     : (analysis?.gaps || []);
 
   const missingSkillsList = rawMissingSkills.filter(skillName =>
-    !completedSkillNames.has(skillName.toLowerCase())
+    !completedSkillNames.has(skillName.trim().toLowerCase())
   );
 
   const currentSkillsList = analysis?.extractedSkills || [
     "React", "Node.js", "TypeScript", "JavaScript", "HTML5", "CSS3"
   ];
 
-  // Original matching skills (current skills not in gaps)
   const initialMatchingSkillsList = currentSkillsList.filter(skill =>
     !rawMissingSkills.some(ms =>
       ms.toLowerCase().includes(skill.toLowerCase()) ||
@@ -220,15 +219,19 @@ export default function DashboardPage() {
     )
   );
 
-  // Dynamically include newly completed skills from pathway in matches
   const newlyCompletedSkillsList = targetSkillsList
     .filter(skill => completedSkillNames.has(skill.name.toLowerCase()))
     .map(skill => skill.name);
 
   const matchingSkillsList = [...new Set([...initialMatchingSkillsList, ...newlyCompletedSkillsList])];
 
+  const dynamicCurrentSkills = [...new Set([
+    ...(analysis?.extractedSkills || []),
+    ...newlyCompletedSkillsList
+  ])];
+
   const missingCount = missingSkillsList.length;
-  const skillsCount = matchingSkillsList.length;
+  const skillsCount = dynamicCurrentSkills.length;
 
   const readinessEstimate = competencyVal >= 85 ? "Optimal Fit" :
     competencyVal >= 70 ? "Lead Ready" :
@@ -449,6 +452,71 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-8"
+      >
+        <div className="p-6 rounded-[32px] bg-white border border-stone-200 shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col">
+          <div className="mb-6">
+            <h3 className="text-sm font-bold uppercase text-stone-900 tracking-wider flex items-center gap-2">
+              <Brain className="text-amber-600" size={18} />
+              <span>Current Skills Profile</span>
+            </h3>
+            <p className="text-stone-500 text-xs font-semibold mt-1">
+              Skills extracted from your analyzed credentials and resume
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-2.5">
+            {dynamicCurrentSkills.length === 0 ? (
+              <span className="text-xs text-stone-400 italic">No skills extracted yet. Upload a resume to begin.</span>
+            ) : (
+              dynamicCurrentSkills.map((skill, idx) => (
+                <span
+                  key={idx}
+                  className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50/60 text-amber-900 border border-amber-200/50 hover:bg-amber-100 hover:scale-102 transition-all duration-150 flex items-center gap-1.5"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                  {skill}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 rounded-[32px] bg-white border border-stone-200 shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col">
+          <div className="mb-6">
+            <h3 className="text-sm font-bold uppercase text-stone-900 tracking-wider flex items-center gap-2">
+              <AlertTriangle className="text-rose-600" size={18} />
+              <span>Target Role Skill Gaps</span>
+            </h3>
+            <p className="text-stone-500 text-xs font-semibold mt-1">
+              Competencies required for {pathway?.targetRole || "target role"} that you need to master
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2.5">
+            {missingSkillsList.length === 0 ? (
+              <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-250 flex items-center gap-1.5">
+                <CheckCircle2 size={14} />
+                No gaps remaining! You are ready.
+              </span>
+            ) : (
+              missingSkillsList.map((skill, idx) => (
+                <span
+                  key={idx}
+                  className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-rose-50 text-rose-900 border border-rose-200/60 hover:bg-rose-100 hover:scale-102 transition-all duration-150 flex items-center gap-1.5"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block animate-pulse" />
+                  {skill}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+      </motion.div>
+
       {/* Dynamic Skill Readiness Bar Chart */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
@@ -507,6 +575,7 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </div>
       </motion.div>
+
 
 
     </div>
