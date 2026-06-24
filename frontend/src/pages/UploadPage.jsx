@@ -251,7 +251,7 @@ export default function UploadPage() {
               {loading ? (
                 <>
                   <Loader2 className="animate-spin" size={16} />
-                  <span>Invoking AI Matcher...</span>
+                  <span>Analysing your resume...</span>
                 </>
               ) : (
                 "Initialize Analysis"

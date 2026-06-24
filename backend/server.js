@@ -13,6 +13,10 @@ if (!MONGODB_URI) {
   process.exit(1);
 }
 
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server successfully listening on port ${PORT}`);
+});
+
 mongoose
   .connect(MONGODB_URI)
   .then(async () => {
@@ -22,9 +26,6 @@ mongoose
     } catch (seedErr) {
       console.error("Warning: Seeding failed on startup:", seedErr.message);
     }
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server successfully listening on port ${PORT}`);
-    });
   })
   .catch((err) => {
     console.error("Failed to connect to MongoDB:", err.message);

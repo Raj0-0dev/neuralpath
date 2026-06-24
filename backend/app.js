@@ -20,9 +20,9 @@ app.use("/api/learning-path", learningPathRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.get("/health", (req, res) => {
-  res.json({ 
-    status: "UP", 
-    timestamp: new Date().toISOString() 
+  res.json({
+    status: "UP",
+    timestamp: new Date().toISOString()
   });
 });
 

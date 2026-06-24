@@ -62,11 +62,10 @@ export const uploadResume = async (req, res, next) => {
       ? Math.round((sumOfScores / maxPossibleScore) * 100)
       : 0;
 
-    // Store/Upsert extracted skills and matchPercentage in the EmployeeSkill model
     const employeeSkill = await EmployeeSkill.findOneAndUpdate(
       { employeeId },
       { 
-        skills: matchingSkills,
+        skills: aiData.extractedSkills || matchingSkills,
         skillsWithScores: aiData.skillsWithScores,
         matchPercentage: matchPercentage
       },

@@ -1,5 +1,5 @@
 export const RESUME_ANALYSIS_PROMPT = `You are an expert ATS (Applicant Tracking System) parser and technical evaluator.
-Your task is to analyze the raw text extracted from a candidate's resume, evaluate their experience level for each of the target role's required skills on a scale of 0 to 10, and return the structured JSON data.
+Your task is to analyze the raw text extracted from a candidate's resume, evaluate their experience level for each of the target role's required skills on a scale of 0 to 10, extract all technical skills present in the resume, and return the structured JSON data.
 
 Target Role Required Skills to Evaluate:
 {targetRoleRequirements}
@@ -25,6 +25,7 @@ Return ONLY a valid JSON object matching this schema. Do not include markdown fo
       "reason": "string"
     }
   ],
+  "extractedSkills": ["string"],
   "experienceYears": 0,
   "targetRole": "string"
 }`;
@@ -118,13 +119,13 @@ export const analyzeResumeText = async (resumeText, targetRoleRequirements = [])
 
     const skillsWithScores = Array.isArray(parsedData.skillsWithScores) ? parsedData.skillsWithScores : [];
     
-    // Maintain backwards compatibility with a flat skills list (score > 0)
-    const skills = skillsWithScores
-      .filter(s => s.score > 0)
-      .map(s => s.name);
+    const extractedSkills = Array.isArray(parsedData.extractedSkills)
+      ? parsedData.extractedSkills
+      : skillsWithScores.filter(s => s.score > 0).map(s => s.name);
 
     return {
-      skills,
+      skills: extractedSkills,
+      extractedSkills,
       skillsWithScores,
       experienceYears: Number.isInteger(parsedData.experienceYears) ? parsedData.experienceYears : 0,
       targetRole: typeof parsedData.targetRole === "string" ? parsedData.targetRole : "",

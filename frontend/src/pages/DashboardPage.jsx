@@ -237,12 +237,11 @@ export default function DashboardPage() {
     competencyVal >= 70 ? "Lead Ready" :
       competencyVal >= 50 ? "Adapting" : "Gap Alert";
 
-  // Target Role Alignment pipeline steps
   const pipelineSteps = [
     { label: "Profile Setup", description: "Auth and account active", completed: isLoggedIn, active: false },
-    { label: "Credentials Parsed", description: skillsCount > 0 ? `${skillsCount} skills mapped` : "No resume uploaded", completed: skillsCount > 0, active: isLoggedIn && skillsCount === 0 },
-    { label: "Gap Analysis", description: dashboardData ? "API metrics ready" : "Awaiting matcher", completed: !!dashboardData, active: skillsCount > 0 && !dashboardData },
-    { label: "Roadmap Active", description: pathway?.phases?.length ? "Learning path open" : "Generating phases", completed: !!pathway?.phases?.length, active: !!dashboardData && !pathway?.phases?.length },
+    { label: "Credentials Parsed", description: analysis ? `${skillsCount} skills mapped` : "No resume uploaded", completed: !!analysis, active: isLoggedIn && !analysis },
+    { label: "Gap Analysis", description: (dashboardData || analysis) ? "API metrics ready" : "Awaiting matcher", completed: !!(dashboardData || analysis), active: !!analysis && !(dashboardData || analysis) },
+    { label: "Roadmap Active", description: pathway?.phases?.length ? "Learning path open" : "Generating phases", completed: !!pathway?.phases?.length, active: !!(dashboardData || analysis) && !pathway?.phases?.length },
     { label: "Role Alignment", description: competencyVal >= 80 ? "Optimal alignment" : `${competencyVal}% match`, completed: competencyVal >= 80, active: !!pathway?.phases?.length && competencyVal < 80 }
   ];
 
