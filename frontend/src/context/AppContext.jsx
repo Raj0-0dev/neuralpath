@@ -9,6 +9,7 @@ export function AppProvider({ children }) {
 
     const [resumeText, setResumeText] = useState("");
     const [jdText, setJdText] = useState("");
+    const [activeResume, setActiveResume] = useState(null);
 
     const [analysis, setAnalysisState] = useState({
         candidateName: "Harsh Rajput",
@@ -198,6 +199,7 @@ export function AppProvider({ children }) {
         setCompletedModules(new Set());
         setActivityLog([]);
         setDailyHours({});
+        setActiveResume(null);
     };
 
     const loadLearningPath = async () => {
@@ -265,18 +267,48 @@ export function AppProvider({ children }) {
         }
     };
 
+    const loadActiveResume = async () => {
+        const token = localStorage.getItem("np-mock-user-token");
+        if (!token) {
+            console.log("loadActiveResume: token not found");
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/resumes/active", {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                console.log("loadActiveResume response data:", result.data);
+                setActiveResume(result.data);
+            } else {
+                console.log("loadActiveResume response error status:", res.status);
+            }
+        } catch (err) {
+            console.error("loadActiveResume error:", err);
+        }
+    };
+
     useEffect(() => {
         if (user) {
             if (!user.targetRole) {
                 setPathwayState(null);
                 setAnalysisState(null);
+                setActiveResume(null);
             } else {
                 loadGapAnalysis();
                 loadLearningPath();
+                loadActiveResume();
             }
         } else {
             setPathwayState(null);
             setAnalysisState(null);
+            setActiveResume(null);
         }
     }, [user]);
 
@@ -408,7 +440,9 @@ export function AppProvider({ children }) {
         loadLearningPath,
         signInEmail: loginUser,
         signUpEmail: signupUser,
-        signInGoogle: signinGoogle
+        signInGoogle: signinGoogle,
+        activeResume,
+        loadActiveResume
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

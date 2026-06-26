@@ -26,14 +26,6 @@ export default function VisitorHeader() {
                         <span className="font-extrabold text-lg tracking-tight text-stone-900">Neural<span className="text-amber-600">Path</span></span>
                     </Link>
 
-                    {/* Active indicator */}
-                    <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-100/80 text-[10px] font-semibold tracking-wide uppercase">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-600"></span>
-                        </span>
-                        May '26 Onboarding Rollout
-                    </div>
                 </div>
 
                 {/* Right side Actions */}

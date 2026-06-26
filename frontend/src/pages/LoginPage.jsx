@@ -8,7 +8,9 @@ import {
     ArrowRight,
     BrainCircuit,
     Briefcase,
-    Building
+    Building,
+    Eye,
+    EyeOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -37,6 +39,9 @@ export default function LoginPage() {
     const [role, setRole] = useState("employee");
     const [targetRole, setTargetRole] = useState("");
     const [company, setCompany] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
@@ -83,8 +88,12 @@ export default function LoginPage() {
             }
             handleAuthResult(signInEmail(email, password, role));
         } else {
-            if (!email || !password || !name) {
+            if (!email || !password || !name || !confirmPassword) {
                 setMessage({ text: "required fields missing.", isError: true });
+                return;
+            }
+            if (password !== confirmPassword) {
+                setMessage({ text: "passwords do not match.", isError: true });
                 return;
             }
             handleAuthResult(signUpEmail(email, password, { name, role, targetRole: role === "employee" ? targetRole : "", company }));
@@ -118,7 +127,7 @@ export default function LoginPage() {
                     {isLogin ? (
                         <div className="space-y-4">
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Email Address</label>
+                                <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider ml-1">Email Address</label>
                                 <div className="relative">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
                                     <input
@@ -134,24 +143,33 @@ export default function LoginPage() {
 
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center ml-1">
-                                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Password</label>
-                                    <button type="button" className="text-[10px] font-black text-stone-500 hover:underline">Forgot?</button>
+                                    <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider">Password</label>
                                 </div>
                                 <div className="relative">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
                                     <input
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors"
+                                        className="w-full pl-11 pr-10 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors"
                                         required
                                     />
+                                    {password && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-900 transition-colors cursor-pointer flex items-center justify-center"
+                                            title={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Sign In As</label>
+                                <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider ml-1">Sign In As</label>
                                 <select
                                     value={role}
                                     onChange={(e) => setRole(e.target.value)}
@@ -166,7 +184,7 @@ export default function LoginPage() {
                         <div className="space-y-4">
                             {/* Stacked Core Fields */}
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Full Name</label>
+                                <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider ml-1">Full Name</label>
                                 <div className="relative">
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
                                     <input
@@ -181,7 +199,7 @@ export default function LoginPage() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Email Address</label>
+                                <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider ml-1">Email Address</label>
                                 <div className="relative">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
                                     <input
@@ -195,18 +213,53 @@ export default function LoginPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider ml-1">Password</label>
+                             <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider ml-1">Password</label>
                                 <div className="relative">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
                                     <input
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors"
+                                        className="w-full pl-11 pr-10 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors"
                                         required
                                     />
+                                    {password && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-900 transition-colors cursor-pointer flex items-center justify-center"
+                                            title={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-stone-700 uppercase tracking-wider ml-1">Confirm Password</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={16} />
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="w-full pl-11 pr-10 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 placeholder:text-stone-400 text-xs font-semibold focus:outline-none focus:border-stone-900 transition-colors"
+                                        required
+                                    />
+                                    {confirmPassword && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-900 transition-colors cursor-pointer flex items-center justify-center"
+                                            title={showConfirmPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -252,6 +305,9 @@ export default function LoginPage() {
                         onClick={() => {
                             setIsLogin(!isLogin);
                             setMessage(null);
+                            setConfirmPassword("");
+                            setShowPassword(false);
+                            setShowConfirmPassword(false);
                         }}
                         className="text-stone-900 font-extrabold hover:underline"
                     >

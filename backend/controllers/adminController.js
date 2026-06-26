@@ -15,6 +15,7 @@ export const getEmployees = async (req, res, next) => {
     const employeeData = await Promise.all(
       employees.map(async (emp) => {
         const gap = await GapAnalysis.findOne({ employeeId: emp._id });
+        const resume = await Resume.findOne({ employeeId: emp._id });
 
         // strengths are the matching skills
         const strengths = gap ? gap.matchingSkills : [];
@@ -39,7 +40,8 @@ export const getEmployees = async (req, res, next) => {
           company: emp.company || "Not Specified",
           readiness: gap ? gap.matchPercentage : 0,
           strengths,
-          gaps
+          gaps,
+          resumeUrl: resume ? resume.fileUrl : null
         };
       })
     );
@@ -139,7 +141,8 @@ export const getEmployeeById = async (req, res, next) => {
         strengths,
         gaps,
         skillsWithScores: gap ? gap.skillsWithScores : [],
-        activityLog
+        activityLog,
+        resumeUrl: resume ? resume.fileUrl : null
       }
     });
   } catch (error) {

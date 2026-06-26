@@ -40,7 +40,7 @@ export default function AuthSidebar({ isCollapsed, setIsCollapsed }) {
     : [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       { name: 'Start Assessment', path: '/upload', icon: Rocket },
-      { name: 'PathwayPage', path: '/pathwaypage', icon: Map },
+      { name: 'Pathway', path: '/pathwaypage', icon: Map },
     ];
 
   const sidebarContent = (

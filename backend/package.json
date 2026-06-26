@@ -2,9 +2,11 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch-path=server.js --watch-path=app.js --watch-path=controllers --watch-path=data --watch-path=middleware --watch-path=models --watch-path=routes --watch-path=services server.js"
+    "dev": "node --watch-path=server.js --watch-path=app.js --watch-path=controllers --watch-path=data --watch-path=middleware --watch-path=models --watch-path=routes --watch-path=services server.js",
+    "seed:admin": "node data/seedAdmin.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

@@ -17,9 +17,7 @@ import {
   ArrowLeft,
   Play,
   Zap,
-  Terminal,
   ArrowRight,
-  Code,
   Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -47,11 +45,7 @@ export default function PathwayPage() {
   const [quizScore, setQuizScore] = useState(85);
   const [quizSuccessMsg, setQuizSuccessMsg] = useState(null);
 
-  // Sandbox State
-  const [isSandboxOpen, setIsSandboxOpen] = useState(false);
-  const [sandboxCode, setSandboxCode] = useState("");
-  const [sandboxOutput, setSandboxOutput] = useState("");
-  const [sandboxRunning, setSandboxRunning] = useState(false);
+
 
   const isYouTubeUrl = (url) => {
     return url && (url.includes("youtube.com") || url.includes("youtu.be"));
@@ -104,7 +98,7 @@ export default function PathwayPage() {
           id="navigate-upload-btn"
           className="bg-stone-900 text-white font-bold text-sm px-8 py-3.5 rounded-full border border-stone-850 hover:bg-stone-800 transition-all duration-100 active:scale-95"
         >
-          Go to Upload Page
+          Upload Resume
         </motion.button>
       </div>
     );
@@ -210,45 +204,7 @@ export default function PathwayPage() {
     }
   };
 
-  const handleOpenSandbox = () => {
-    // Generate dynamic boilerplate sample code based on the active module title
-    const modTitle = activeModule?.title || "TypeScript Module";
-    let bCode = `// [NeuralPath Native Sandbox Playroom]\n`;
-    if (modTitle.includes("TypeScript")) {
-      bCode += `/**\n * Topic: TypeScript High-Performance Benchmark Compiler Loop\n */\nclass AstBenchmarker {\n  static measureLoopExecution() {\n    const start = performance.now();\n    let sum = 0;\n    // Optimize layout structures\n    for (let i = 0; i < 2000000; i++) {\n      sum += (i % 2 === 0) ? 1 : 0;\n    }\n    return performance.now() - start;\n  }\n}\n\nconsole.log("Analyzing performance layout...");\nconst executionMs = AstBenchmarker.measureLoopExecution().toFixed(4);\nconsole.log(\`[Success] Loop executed in \${executionMs} ms\`);\n`;
-    } else if (modTitle.includes("React") || modTitle.includes("Frontend")) {
-      bCode += `/**\n * Topic: React Component Reconciliation & Fiber Optimizations\n */\nfunction simulateReconciliation() {\n  const virtualTreeSize = 50000;\n  console.log(\`Reconciling virtual render tree with \${virtualTreeSize} interactive fiber items...\`);\n  const start = performance.now();\n  const memoizedArray = Array.from({ length: virtualTreeSize }, (_, i) => \`ComponentNode_\${i}\`);\n  const duration = (performance.now() - start).toFixed(2);\n  console.log(\`React Fiber tree updated synchronously in \${duration}ms\`);\n}\n\nsimulateReconciliation();\n`;
-    } else {
-      bCode += `/**\n * Topic: ${modTitle} Lab Exercise\n */\nfunction runDiagnosticTest() {\n  console.log("Performing dynamic sanity check on compiled module attributes...");\n  const score = Math.round(75 + Math.random() * 25);\n  console.log(\`Integration successful! Internal score verification: \${score}%\`);\n}\n\nrunDiagnosticTest();\n`;
-    }
-    setSandboxCode(bCode);
-    setSandboxOutput("Ready to execute live workspace test script...");
-    setIsSandboxOpen(true);
-  };
 
-  const handleRunSandboxCode = () => {
-    setSandboxRunning(true);
-    setSandboxOutput("Initializing remote sandbox compiler environment...\nStarting AST generation & bundle optimizations...\n");
-    setTimeout(() => {
-      try {
-        // Safe evaluation simulation
-        let customLog = "";
-        const originalConsoleLog = console.log;
-        console.log = (...args) => {
-          customLog += args.join(" ") + "\n";
-        };
-        // Execute code
-        new Function(sandboxCode)();
-
-        console.log = originalConsoleLog;
-        setSandboxOutput((prev) => prev + "\n[System Logs]\n" + customLog + "\n[Result: COMPILATION SUCCESSFUL]");
-      } catch (err) {
-        setSandboxOutput((prev) => prev + `\n🛑 [Compiler Error] ${err.message}`);
-      } finally {
-        setSandboxRunning(false);
-      }
-    }, 1200);
-  };
 
   const totalModulesCount = allModules.length;
   const completedModulesCount = allModules.filter((m) => isModuleCompleted(m)).length;
@@ -633,88 +589,7 @@ export default function PathwayPage() {
           )}
         </AnimatePresence>
 
-        {/* MODAL 2: INTERACTIVE HANDS-ON AST SANDBOX OVERLAY */}
-        <AnimatePresence>
-          {isSandboxOpen && (
-            <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-55">
-              <motion.div
-                initial={{ scale: 0.98, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.98, opacity: 0 }}
-                className="bg-[#18181b] border border-stone-800 rounded-[28px] w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col text-stone-300 font-mono"
-              >
-                {/* Sandbox Header */}
-                <div className="p-4 bg-stone-900/90 border-b border-stone-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <div className="w-3 h-3 rounded-full bg-green-500" />
-                    <span className="text-xs font-bold text-stone-400 ml-2">NeuralNode Compiler Studio - Sandbox</span>
-                  </div>
-                  <button
-                    onClick={() => setIsSandboxOpen(false)}
-                    className="text-stone-400 hover:text-white transition-colors text-xs font-bold bg-stone-800 px-3 py-1 rounded-md cursor-pointer"
-                  >
-                    Close Playroom
-                  </button>
-                </div>
 
-                {/* Sandbox Body (Split editor and logger) */}
-                <div className="p-6 space-y-4">
-                  <div>
-                    <div className="text-[10px] text-stone-500 uppercase tracking-widest font-black mb-1.5 flex items-center gap-2">
-                      <Code size={12} className="text-amber-500" />
-                      Editable JS/TS Script Playground:
-                    </div>
-                    <textarea
-                      value={sandboxCode}
-                      onChange={(e) => setSandboxCode(e.target.value)}
-                      rows={10}
-                      className="w-full p-4 bg-stone-950 border border-stone-800 rounded-xl text-emerald-400 placeholder:text-stone-600 text-xs font-mono focus:outline-none focus:border-amber-600/50 leading-relaxed resize-none"
-                    />
-                  </div>
-
-                  {/* Sandbox Logger Console Console */}
-                  <div>
-                    <div className="text-[10px] text-stone-500 uppercase tracking-widest font-black mb-1.5">
-                      Console Compiler Output:
-                    </div>
-                    <div className="w-full p-4 bg-stone-950 border border-stone-800 rounded-xl text-xs max-h-40 overflow-y-auto leading-relaxed text-stone-400">
-                      {sandboxOutput.split("\n").map((line, i) => {
-                        const isSystem = line.startsWith("[System") || line.startsWith("[success") || line.startsWith("[Result");
-                        const isErr = line.startsWith("🛑");
-                        const colorClass = isSystem ? "text-amber-400" : isErr ? "text-red-400" : "text-stone-300";
-                        return <div key={i} className={colorClass}>{line}</div>;
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sandbox Footer Buttons */}
-                <div className="p-4 bg-stone-900/55 border-t border-stone-800 flex justify-between items-center">
-                  <span className="text-[10px] text-stone-500">Target Node: {activeModule?.title}</span>
-                  <button
-                    onClick={handleRunSandboxCode}
-                    disabled={sandboxRunning}
-                    className="bg-amber-600 hover:bg-amber-500 disabled:bg-stone-800 disabled:text-stone-500 text-white text-xs font-bold px-5 py-2.5 rounded-full flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
-                  >
-                    {sandboxRunning ? (
-                      <>
-                        <RefreshCw className="animate-spin" size={13} />
-                        <span>Compiling Nodes...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Terminal size={13} />
-                        <span>Execute Optimization Script</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
 
       </div>
     </div>

@@ -3,7 +3,8 @@ import EmployeeSkill from "../models/EmployeeSkill.js";
 import User from "../models/User.js";
 import GapAnalysis from "../models/GapAnalysis.js";
 import LearningPath from "../models/LearningPath.js";
-import { extractTextFromPDF } from "../services/pdfService.js";
+import { extractTextFromBuffer } from "../services/pdfService.js";
+import { uploadToSupabase } from "../services/supabaseService.js";
 import { analyzeResumeText } from "../services/aiService.js";
 import { 
   getRequiredSkillsForRole, 
@@ -13,15 +14,11 @@ import {
 export const uploadResume = async (req, res, next) => {
   try {
     const file = req.file;
-    // Extract employeeId from protected req.user
     const employeeId = req.user._id;
-    // Normalize backslashes to forward slashes for the file path
-    const fileUrl = file.path.replace(/\\/g, "/");
 
-    // Extract text from the PDF file
-    const extractedText = await extractTextFromPDF(file.path);
+    const extractedText = await extractTextFromBuffer(file.buffer);
+    const fileUrl = await uploadToSupabase(file.buffer, file.originalname, file.mimetype);
 
-    // Store resume metadata and extracted text in the database
     const resume = new Resume({
       employeeId,
       fileUrl,
@@ -96,7 +93,7 @@ export const uploadResume = async (req, res, next) => {
         employeeId: resume.employeeId,
         fileUrl: resume.fileUrl,
         originalName: file.originalname,
-        filename: file.filename,
+        filename: file.originalname,
         mimetype: file.mimetype,
         size: file.size,
         uploadedAt: resume.uploadedAt,
@@ -105,6 +102,31 @@ export const uploadResume = async (req, res, next) => {
         targetRole: targetRole,
         matchPercentage: employeeSkill.matchPercentage,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getActiveResume = async (req, res, next) => {
+  try {
+    const employeeId = req.user._id;
+    const resume = await Resume.findOne({ employeeId }).sort({ createdAt: -1 });
+    if (!resume) {
+      return res.status(200).json({
+        success: true,
+        data: null
+      });
+    }
+    const rawFilename = resume.fileUrl.split("/").pop();
+    const filename = rawFilename.replace(/^\d+_/, "");
+    res.status(200).json({
+      success: true,
+      data: {
+        id: resume._id,
+        fileUrl: resume.fileUrl,
+        filename
+      }
     });
   } catch (error) {
     next(error);

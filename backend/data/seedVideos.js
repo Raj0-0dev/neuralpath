@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 import SkillVideo from "../models/SkillVideo.js";
-import User from "../models/User.js";
-import bcrypt from "bcryptjs";
 import Role from "../models/Role.js";
 
 // Empty videoSeeds array placeholder for custom dataset
@@ -465,8 +463,6 @@ export const videoSeeds = [
 
 export const seedSkillVideos = async () => {
   try {
-    console.log("Starting skill videos seeding...");
-
     // Ensure mongoose is connected
     if (mongoose.connection.readyState === 0) {
       const dbUri = process.env.MONGODB_URI;
@@ -477,64 +473,60 @@ export const seedSkillVideos = async () => {
     }
 
     const videoCount = await SkillVideo.countDocuments();
-    if (videoCount === 0) {
-      for (const seed of videoSeeds) {
-        if (!seed.skillName) continue;
-        await SkillVideo.create(seed);
-      }
-    }
-
-    const defaultRoles = [
-      {
-        title: "Frontend Developer",
-        description: "Specialized in client-side applications, rendering performance, and web layouts.",
-        requiredSkills: ["HTML", "CSS", "JavaScript", "TypeScript", "React", "State Management", "Git"]
-      },
-      {
-        title: "Backend Developer",
-        description: "Specialized in API architecture, database optimization, and server scaling.",
-        requiredSkills: ["Node.js", "Express", "REST API", "MongoDB", "SQL", "Git", "Docker"]
-      },
-      {
-        title: "Full Stack Developer",
-        description: "Capable of designing complete end-to-end applications from database to user interface.",
-        requiredSkills: ["HTML", "CSS", "JavaScript", "React", "Node.js", "Express", "MongoDB", "Git"]
-      },
-      {
-        title: "DevOps Engineer",
-        description: "Specialized in automation pipelines, infrastructure-as-code, and cluster orchestration.",
-        requiredSkills: ["Linux", "Docker", "Kubernetes", "CI/CD", "AWS", "Git", "Terraform", "Bash"]
-      },
-      {
-        title: "Software Engineer",
-        description: "Generalist software engineering role with strong foundation in core computer science.",
-        requiredSkills: ["JavaScript", "Node.js", "SQL", "Git", "Data Structures", "Algorithms"]
-      }
-    ];
-
     const roleCount = await Role.countDocuments();
-    if (roleCount === 0) {
-      for (const roleDef of defaultRoles) {
-        await Role.create(roleDef);
+
+    const needsVideoSeeding = videoCount === 0;
+    const needsRoleSeeding = roleCount === 0;
+
+    if (needsVideoSeeding || needsRoleSeeding) {
+      console.log("Starting database initialization...");
+
+      if (needsVideoSeeding) {
+        console.log("Seeding skill videos...");
+        for (const seed of videoSeeds) {
+          if (!seed.skillName) continue;
+          await SkillVideo.create(seed);
+        }
       }
-    }
 
-    const admin = await User.findOne({ email: "admin@neuralpath.com" });
-    if (!admin) {
-      const defaultAdmin = new User({
-        email: "admin@neuralpath.com",
-        password: "adminpassword",
-        role: "admin",
-        name: "System Administrator",
-        targetRole: "System Oversight",
-        company: "NeuralPath"
-      });
-      await defaultAdmin.save();
-    }
+      if (needsRoleSeeding) {
+        console.log("Seeding default roles...");
+        const defaultRoles = [
+          {
+            title: "Frontend Developer",
+            description: "Specialized in client-side applications, rendering performance, and web layouts.",
+            requiredSkills: ["HTML", "CSS", "JavaScript", "TypeScript", "React", "State Management", "Git"]
+          },
+          {
+            title: "Backend Developer",
+            description: "Specialized in API architecture, database optimization, and server scaling.",
+            requiredSkills: ["Node.js", "Express", "REST API", "MongoDB", "SQL", "Git", "Docker"]
+          },
+          {
+            title: "Full Stack Developer",
+            description: "Capable of designing complete end-to-end applications from database to user interface.",
+            requiredSkills: ["HTML", "CSS", "JavaScript", "React", "Node.js", "Express", "MongoDB", "Git"]
+          },
+          {
+            title: "DevOps Engineer",
+            description: "Specialized in automation pipelines, infrastructure-as-code, and cluster orchestration.",
+            requiredSkills: ["Linux", "Docker", "Kubernetes", "CI/CD", "AWS", "Git", "Terraform", "Bash"]
+          },
+          {
+            title: "Software Engineer",
+            description: "Generalist software engineering role with strong foundation in core computer science.",
+            requiredSkills: ["JavaScript", "Node.js", "SQL", "Git", "Data Structures", "Algorithms"]
+          }
+        ];
+        for (const roleDef of defaultRoles) {
+          await Role.create(roleDef);
+        }
+      }
 
-    console.log("Skill videos seeding completed successfully.");
+      console.log("Database initialization completed successfully.");
+    }
   } catch (error) {
-    console.error("Error during skill videos seeding:", error.message);
+    console.error("Error during database initialization:", error.message);
     throw error;
   }
 };

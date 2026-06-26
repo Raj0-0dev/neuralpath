@@ -29,7 +29,7 @@ const PRESETS = [
 ];
 
 export default function UploadPage() {
-  const { profile, setAnalysis, setPathway, analysis, loadGapAnalysis, loadLearningPath } = useApp();
+  const { profile, setAnalysis, setPathway, analysis, loadGapAnalysis, loadLearningPath, loadActiveResume } = useApp();
   const { isDark, t } = useTheme();
   const navigate = useNavigate();
 
@@ -137,6 +137,7 @@ export default function UploadPage() {
 
           // Load the actual dynamic learning path (with videos) from the backend
           await loadLearningPath();
+          await loadActiveResume();
         }
       } catch (gapErr) {
         console.error("Failed to load gap details dynamically:", gapErr);
@@ -145,7 +146,7 @@ export default function UploadPage() {
       setStep(2);
     } catch (err) {
       console.error(err);
-      setError(err?.message || "Critical error matching competencies to qualifications.");
+      setError("Something went wrong. Please try again after some time.");
     } finally {
       setLoading(false);
     }

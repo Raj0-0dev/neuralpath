@@ -32,9 +32,10 @@ import {
   Layers,
   Shield,
   CheckCircle2,
-  Zap
+  Zap,
+  FileText
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 
 const SKILL_DATA = [
   { subject: "React", A: 120, fullMark: 150 },
@@ -46,17 +47,25 @@ const SKILL_DATA = [
 ];
 
 export default function DashboardPage() {
-  const { isLoggedIn, profile, pathway, completedModules, dailyHours, analysis } = useApp();
+  const { isLoggedIn, profile, pathway, completedModules, dailyHours, analysis, activeResume, loadActiveResume } = useApp();
   const navigate = useNavigate();
 
   const [dashboardData, setDashboardData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [isResumeModalOpen, setIsResumeModalOpen] = React.useState(false);
+
+  console.log("DashboardPage activeResume:", activeResume);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
       setLoading(false);
       return;
+    }
+
+    if (loadActiveResume) {
+      console.log("DashboardPage: calling loadActiveResume");
+      loadActiveResume();
     }
 
     const fetchDashboardData = async () => {
@@ -121,7 +130,7 @@ export default function DashboardPage() {
           onClick={() => navigate("/upload")}
           className="bg-stone-900 text-white font-semibold text-sm px-6 py-3 rounded-full hover:bg-stone-850 transition-all active:scale-95 duration-100 border border-stone-100 shadow-sm cursor-pointer"
         >
-          Go to Upload Page
+          Upload Resume
         </button>
       </div>
     );
@@ -304,11 +313,11 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2.5">
           <button
-            onClick={() => navigate("/upload")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-stone-900 text-white font-bold rounded-full hover:bg-stone-850 transition-all text-xs shadow-sm shadow-stone-950/10 cursor-pointer"
+            onClick={() => setIsResumeModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white font-bold rounded-full hover:bg-stone-850 transition-all text-xs shadow-sm cursor-pointer"
           >
-            <Plus size={14} />
-            <span>Analyze Gap</span>
+            <FileText size={14} />
+            <span>My Resume</span>
           </button>
         </div>
       </div>
@@ -466,7 +475,7 @@ export default function DashboardPage() {
               Skills extracted from your analyzed credentials and resume
             </p>
           </div>
-          
+
           <div className="flex flex-wrap gap-2.5">
             {dynamicCurrentSkills.length === 0 ? (
               <span className="text-xs text-stone-400 italic">No skills extracted yet. Upload a resume to begin.</span>
@@ -575,7 +584,68 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
+      <AnimatePresence>
+        {isResumeModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-6 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.98, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.98, y: 12 }}
+              className="bg-white border border-stone-200 rounded-[32px] p-8 sm:p-10 w-full max-w-[450px] shadow-[0_24px_70px_rgba(0,0,0,0.12)] relative text-stone-900"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                  <FileText size={20} />
+                </div>
+                <h3 className="font-sans text-stone-950 text-xl font-bold tracking-tight lowercase">
+                  my active credentials
+                </h3>
+              </div>
 
+              <div className="space-y-4 mb-6">
+                <p className="text-xs font-semibold text-stone-650 leading-relaxed">
+                  You are currently on the adaptive learning roadmap generated from this document:
+                </p>
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80">
+                  <span className="text-[10px] font-black uppercase tracking-wider block text-stone-400">File Name</span>
+                  <span className="text-xs font-extrabold text-stone-850 break-all">{activeResume?.filename || "resume_active.pdf"}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setIsResumeModalOpen(false)}
+                  className="bg-white hover:bg-stone-50 text-stone-855 font-semibold text-xs py-3 rounded-xl border border-stone-200 shadow-sm transition-all active:scale-95 duration-100 cursor-pointer"
+                >
+                  Close
+                </button>
+                {activeResume?.fileUrl ? (
+                  <a
+                    href={activeResume.fileUrl.startsWith("http") ? activeResume.fileUrl : `/${activeResume.fileUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-stone-900 hover:bg-stone-850 text-white font-bold text-xs py-3 rounded-xl border border-stone-900 shadow-sm transition-all active:scale-95 duration-100 cursor-pointer text-center block"
+                  >
+                    View Document
+                  </a>
+                ) : (
+                  <button
+                    disabled
+                    className="bg-stone-100 text-stone-400 font-bold text-xs py-3 rounded-xl border border-stone-200 cursor-not-allowed text-center"
+                  >
+                    No File Link
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

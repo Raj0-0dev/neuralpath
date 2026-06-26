@@ -155,6 +155,23 @@ export default function AdminTalentPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setSelectedCandidate(data.data);
+        setCandidates((prevCandidates) =>
+          prevCandidates.map((c) =>
+            c.id === candidate.id
+              ? {
+                  ...c,
+                  name: data.data.name,
+                  email: data.data.email,
+                  targetRole: data.data.targetRole,
+                  company: data.data.company,
+                  readiness: data.data.readiness,
+                  strengths: data.data.strengths,
+                  gaps: data.data.gaps,
+                  resumeUrl: data.data.resumeUrl,
+                }
+              : c
+          )
+        );
       }
     } catch (err) {
       console.error(err);
@@ -385,14 +402,45 @@ export default function AdminTalentPage() {
                       </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    {selectedCandidate.resumeUrl ? (
+                      <a
+                        href={selectedCandidate.resumeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold hover:shadow-sm border transition-all cursor-pointer"
+                        style={{
+                          borderColor: t.border,
+                          backgroundColor: t.bgStep,
+                          color: t.linkText,
+                        }}
+                      >
+                        <FileText size={14} />
+                        <span>View Resume</span>
+                      </a>
+                    ) : (
+                      <button
+                        disabled
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border opacity-50 cursor-not-allowed"
+                        style={{
+                          borderColor: t.border,
+                          backgroundColor: t.bgStep,
+                          color: t.textMuted,
+                        }}
+                      >
+                        <FileText size={14} />
+                        <span>No Resume</span>
+                      </button>
+                    )}
 
-                  <button
-                    onClick={() => setSelectedCandidate(null)}
-                    className="p-1.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-850 text-stone-500 hover:text-stone-900 dark:hover:text-stone-300 border transition-all cursor-pointer shadow-sm"
-                    style={{ borderColor: t.border }}
-                  >
-                    <X size={15} />
-                  </button>
+                    <button
+                      onClick={() => setSelectedCandidate(null)}
+                      className="p-1.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-850 text-stone-500 hover:text-stone-900 dark:hover:text-stone-300 border transition-all cursor-pointer shadow-sm"
+                      style={{ borderColor: t.border }}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

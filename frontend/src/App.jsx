@@ -128,14 +128,7 @@ function AppContent() {
         </Routes>
       </main>
 
-      {/* Persistent elegant footer on public routes */}
-      {!isAuthRoute && location.pathname !== "/login" && (
-        <footer className="py-12 border-t border-stone-200 bg-white text-center mt-auto">
-          <p className="font-mono text-[10px] text-stone-400 font-semibold max-w-xl mx-auto px-4">
-            &copy; {new Date().getFullYear()} NeuralPath. All rights reserved. Strategic Talent Alignments Gating & Topological Competencies Pipeline.
-          </p>
-        </footer>
-      )}
+      
     </div>
   );
 }
