@@ -34,7 +34,7 @@ NeuralPath is a modern B2B SaaS platform designed to automate trainee and intern
 neuralpath/
 ├── backend/
 │   ├── controllers/      # Route handler controllers (auth, admin, resumes, gaps)
-│   ├── data/             # Seeding scripts (seedVideos.js)
+│   ├── data/             # Seeding scripts (seedVideos.js, seedAdmin.js)
 │   ├── middleware/       # Authentication guards & file uploading
 │   ├── models/           # Mongoose schemas (User, Role, SkillVideo, Resume)
 │   ├── routes/           # Express API endpoints
@@ -94,26 +94,27 @@ SUPABASE_BUCKET_NAME=resumes
 
 ## 🏃 Running the Application
 
-### Start Backend Development Server
+### 1. Database Seeding
+The database contains two types of initial seeds:
+*   **Default Skill Videos & Job Roles**: Seeded automatically on backend server startup if the database collections are empty.
+*   **Initial Administrator User**: Seeded manually via a dedicated CLI script. To create the admin account, configure `ADMIN_EMAIL` and `ADMIN_PASSWORD` in your backend `.env` file and run:
+    ```bash
+    cd backend
+    npm run seed:admin
+    ```
+
+### 2. Start Backend Development Server
 From the `backend/` folder:
 ```bash
 npm run dev
 ```
-*Note: The server will automatically initialize/seed database roles, admin credentials, and default video paths on the first startup if they do not exist.*
 
-### Start Frontend Client
+### 3. Start Frontend Client
 From the `frontend/` folder:
 ```bash
 npm run dev
 ```
 The application will launch locally at `http://localhost:5173`.
-
----
-
-## 🔐 Default Credentials (Seeded)
-*   **Role**: HR Administrator View
-*   **Email**: `admin@neuralpath.com`
-*   **Password**: `adminpassword`
 
 ---
 
