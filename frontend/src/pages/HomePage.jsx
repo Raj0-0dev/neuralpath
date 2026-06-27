@@ -33,7 +33,7 @@ export default function HomePage() {
             answer: "The platform currently accepts PDF resume files. Once uploaded, the backend programmatically extracts the document text to perform the competency audit."
         },
         {
-            question: "Can we onboard and track a cohort of multiple interns at the same time?",
+            question: "Can we manage and track a cohort of multiple interns at the same time?",
             answer: "Yes! The administrator panel provides a unified dashboard for managers to view all active trainees, check their role readiness percentages, and track individual module completion progress."
         },
         {
@@ -91,7 +91,7 @@ export default function HomePage() {
                         className="inline-flex items-center gap-2 border border-emerald-200/80 bg-emerald-50/70 text-emerald-900 px-3.5 py-1.5 rounded-full font-mono text-[9px] uppercase tracking-wider mb-6 shadow-sm"
                     >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                        Employee Onboarding & Upskilling Platform
+                        Employee Competency Mapping & Upskilling Platform
                     </motion.div>
 
                     <motion.h1
@@ -101,7 +101,7 @@ export default function HomePage() {
                         className="font-sans font-extrabold text-4xl sm:text-5xl md:text-6xl tracking-tight leading-[1.1] max-w-3xl mx-auto mb-6"
                         style={{ color: t.textH }}
                     >
-                        Onboard & upskill your <span className="underline decoration-stone-200 decoration-8 underline-offset-2">trainees with precision.</span>
+                        Assess & upskill your <span className="underline decoration-stone-200 decoration-8 underline-offset-2">trainees with precision.</span>
                     </motion.h1>
 
                     <motion.p
@@ -111,7 +111,7 @@ export default function HomePage() {
                         className="font-sans font-medium text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mb-10"
                         style={{ color: t.textBody }}
                     >
-                        NeuralPath helps engineering teams automate intern and trainee onboarding. Identify critical skill gaps from resume credentials and generate structured, adaptive learning pathways to get them production-ready.
+                        NeuralPath helps engineering teams automate intern and trainee skill assessment. Identify critical skill gaps from resume credentials and generate structured, adaptive learning pathways to get them production-ready.
                     </motion.p>
 
                     <motion.div
@@ -134,7 +134,7 @@ export default function HomePage() {
                         Powerful Features Built for Teams
                     </h2>
                     <p className="text-xs sm:text-sm font-semibold mt-2" style={{ color: t.textMuted }}>
-                        Everything you need for seamless intern onboarding and trainee cohort tracking
+                        Everything you need for seamless intern competency tracking and trainee progress analysis
                     </p>
                 </div>
 
@@ -159,7 +159,7 @@ export default function HomePage() {
                             Real-Time Synergy
                         </h3>
                         <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
-                            Track cohort progress in real-time, monitoring onboarding metrics and training milestone completion.
+                            Track cohort progress in real-time, monitoring learning metrics and training milestone completion.
                         </p>
                     </div>
 
@@ -183,7 +183,7 @@ export default function HomePage() {
                             Shared Path Sharing
                         </h3>
                         <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
-                            Instantly distribute standardized onboarding roadmaps to entire intern cohorts.
+                            Instantly distribute standardized learning roadmaps to entire intern cohorts.
                         </p>
                     </div>
 

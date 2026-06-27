@@ -86,7 +86,7 @@ export default function PathwayPage() {
       <div className="pt-6 md:pt-20 pb-16 px-4 md:px-8 max-w-xl mx-auto flex flex-col items-center justify-center text-center gap-5 relative">
         <Compass size={56} className="text-amber-600 animate-pulse" />
         <h3 className="font-sans text-stone-950 text-2xl font-black lowercase tracking-tight">
-          no onboarding roadmap active
+          no active learning roadmap
         </h3>
         <p className="font-sans text-stone-600 font-medium text-sm text-center max-w-sm leading-relaxed">
           please go to the upload page and assess your resume first to activate learning pathway roadmap.

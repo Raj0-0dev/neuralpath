@@ -306,7 +306,7 @@ export default function DashboardPage() {
       {/* Header section identical layout */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 pb-6">
         <div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Onboarding Dashboard</h1>
+          <h1 className="text-3xl font-black text-stone-900 tracking-tight">Upskilling Dashboard</h1>
           <p className="text-stone-500 text-sm font-semibold mt-1">
             Analyzing your path to <span className="text-amber-700 font-bold">{pathway?.targetRole || "Principal Technical Lead"}</span>
           </p>
@@ -421,7 +421,7 @@ export default function DashboardPage() {
         <div className="p-6 rounded-[32px] bg-white border border-stone-200">
           <div className="mb-6">
             <h3 className="text-sm font-bold uppercase text-stone-655 tracking-wider">Weekly Learning Velocity</h3>
-            <p className="text-stone-700 text-xs font-semibold">Onboarding activity tracked and mapped automatically from study milestones</p>
+            <p className="text-stone-700 text-xs font-semibold">Learning activity tracked and mapped automatically from study milestones</p>
           </div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">

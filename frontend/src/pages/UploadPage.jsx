@@ -193,7 +193,7 @@ export default function UploadPage() {
           >
             <div className="text-center">
               <h2 className="text-2xl font-black text-stone-900 tracking-tight mb-2">Upload Profile Credentials</h2>
-              <p className="text-stone-500 text-sm font-semibold">Drop your updated resume to extract skills and identify onboarding gaps.</p>
+              <p className="text-stone-500 text-sm font-semibold">Drop your updated resume to extract skills and identify key skill gaps.</p>
             </div>
 
             <div className="space-y-1.5 text-left">
@@ -298,7 +298,7 @@ export default function UploadPage() {
             >
               <h3 className="flex items-center gap-2 font-extrabold text-sm mb-4" style={{ color: isDark ? t.textH : "#78350f" }}>
                 <BrainCircuit size={18} />
-                Critical Onboarding Gaps
+                Critical Skill Gaps
               </h3>
               <ul className="space-y-3">
                 {gapsList.slice(0, 4).map((gap) => (

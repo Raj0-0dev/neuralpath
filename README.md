@@ -1,8 +1,8 @@
 # 🧠 NeuralPath
 
-> **Automated Employee Onboarding & Adaptive Upskilling Platform**
+> **Automated Trainee Skill Gap Analysis & Adaptive Upskilling Platform**
 
-NeuralPath is a modern B2B SaaS platform designed to automate trainee and intern onboarding for engineering teams. By parsing candidates' PDF resumes with LLM analysis, the platform identifies critical skill gaps against customizable role benchmarks and constructs adaptive, step-by-step learning pathways with curated video resources.
+NeuralPath is a modern B2B SaaS platform designed to automate trainee and intern skill gap mapping for engineering teams. By parsing candidates' PDF resumes with LLM analysis, the platform identifies critical skill gaps against customizable role benchmarks and constructs adaptive, step-by-step learning pathways with curated video resources.
 
 ---
 
